@@ -36,7 +36,6 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-// --- 1. GŁÓWNA STRUKTURA I NAWIGACJA ---
 @Composable
 fun OtomotUZplusApp() {
     var currentDestination by rememberSaveable { mutableStateOf(AppDestinations.HOME) }
@@ -46,7 +45,6 @@ fun OtomotUZplusApp() {
             AppDestinations.entries.forEach {
                 item(
                     icon = {
-                        // Zmiana na wbudowane ikony z Compose
                         Icon(
                             imageVector = it.icon,
                             contentDescription = it.label
@@ -60,9 +58,7 @@ fun OtomotUZplusApp() {
         }
     ) {
         Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-            // Ten Box zajmuje całe miejsce nad dolnym paskiem
             Box(modifier = Modifier.padding(innerPadding).fillMaxSize()) {
-                // MAGIA NAWIGACJI: Wyświetlamy ekran w zależności od wybranej zakładki
                 when (currentDestination) {
                     AppDestinations.HOME -> HomeScreen()
                     AppDestinations.SEARCH -> SearchScreen()
@@ -73,18 +69,15 @@ fun OtomotUZplusApp() {
     }
 }
 
-// --- 2. ZDEFINIOWANE ZAKŁADKI ---
 enum class AppDestinations(val label: String, val icon: ImageVector) {
     HOME("Główna", Icons.Filled.Home),
     SEARCH("Szukaj", Icons.Filled.Search),
     SETTINGS("Ustawienia", Icons.Filled.Settings),
 }
 
-// --- 3. EKRANY (ZAWARTOŚĆ ZAKŁADEK) ---
 
 @Composable
 fun HomeScreen() {
-    // Tu zrobimy ładny wygląd z żółtym autem
     Column(
         modifier = Modifier.fillMaxSize().padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -97,7 +90,6 @@ fun HomeScreen() {
 
 @Composable
 fun SearchScreen() {
-    // Tu będą filtry i ogłoszenia
     Column(
         modifier = Modifier.fillMaxSize().padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -112,7 +104,6 @@ fun SearchScreen() {
 fun SettingsScreen() {
     val context = LocalContext.current
 
-    // Ekran ustawień z przyciskiem wylogowania na samym dole
     Column(
         modifier = Modifier.fillMaxSize().padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
@@ -120,7 +111,7 @@ fun SettingsScreen() {
         Text("Ustawienia", fontSize = 24.sp, fontWeight = FontWeight.Bold)
         Text("Tryb ciemny / Język - do zrobienia", modifier = Modifier.padding(top = 8.dp))
 
-        Spacer(modifier = Modifier.weight(1f)) // Wypycha przycisk na sam dół ekranu
+        Spacer(modifier = Modifier.weight(1f))
 
         Button(
             onClick = {

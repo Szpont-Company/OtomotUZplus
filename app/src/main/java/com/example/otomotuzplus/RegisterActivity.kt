@@ -30,7 +30,6 @@ class RegisterActivity : AppCompatActivity() {
             val pass = passwordET.text.toString().trim()
             val repeatPass = repeatPasswordET.text.toString().trim()
 
-            // 1. Walidacja danych
             if (email.isEmpty() || pass.isEmpty() || repeatPass.isEmpty()) {
                 Toast.makeText(this, "Wypełnij wszystkie pola", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
@@ -46,7 +45,6 @@ class RegisterActivity : AppCompatActivity() {
                 return@setOnClickListener
             }
 
-            // 2. Firebase: Tworzenie konta
             auth.createUserWithEmailAndPassword(email, pass)
                 .addOnCompleteListener(this) { task ->
                     if (task.isSuccessful) {
@@ -62,9 +60,8 @@ class RegisterActivity : AppCompatActivity() {
                 }
         }
 
-        // Powrót do ekranu logowania
         loginTV.setOnClickListener {
-            finish() // Zamyka ten ekran i wraca do poprzedniego
+            finish()
         }
     }
 }
