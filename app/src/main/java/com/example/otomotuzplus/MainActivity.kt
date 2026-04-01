@@ -1,129 +1,158 @@
+@file:OptIn(ExperimentalMaterial3Api::class)
+
 package com.example.otomotuzplus
 
-import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
+import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteDefaults
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffold
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import androidx.compose.ui.graphics.Color
+import com.example.otomotuzplus.data.PreferenceManager
+import com.example.otomotuzplus.data.ThemeMode
+import com.example.otomotuzplus.ui.components.PlaceholderScreen
+import com.example.otomotuzplus.ui.models.EnglishStrings
+import com.example.otomotuzplus.ui.models.PolishStrings
+import com.example.otomotuzplus.ui.navigation.AppDestinations
+import com.example.otomotuzplus.ui.navigation.NavigationItem
+import com.example.otomotuzplus.ui.screens.profile.ProfileScreen
+import com.example.otomotuzplus.ui.screens.settings.SettingsScreen
 import com.example.otomotuzplus.ui.theme.OtomotUZplusTheme
-import com.google.firebase.auth.FirebaseAuth
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        val prefManager = PreferenceManager(this)
         enableEdgeToEdge()
         setContent {
-            OtomotUZplusTheme {
-                OtomotUZplusApp()
+            var themeMode by remember { mutableStateOf(prefManager.getThemeMode()) }
+            var currentLanguage by remember { mutableStateOf(prefManager.getLanguage()) }
+
+            val darkTheme = when (themeMode) {
+                ThemeMode.LIGHT -> false
+                ThemeMode.DARK -> true
+                ThemeMode.SYSTEM -> isSystemInDarkTheme()
             }
-        }
-    }
-}
 
-@Composable
-fun OtomotUZplusApp() {
-    var currentDestination by rememberSaveable { mutableStateOf(AppDestinations.HOME) }
-
-    NavigationSuiteScaffold(
-        navigationSuiteItems = {
-            AppDestinations.entries.forEach {
-                item(
-                    icon = {
-                        Icon(
-                            imageVector = it.icon,
-                            contentDescription = it.label
-                        )
+            OtomotUZplusTheme(darkTheme = darkTheme) {
+                OtomotUZplusApp(
+                    themeMode = themeMode,
+                    onThemeChange = { 
+                        themeMode = it
+                        prefManager.setThemeMode(it)
                     },
-                    label = { Text(it.label) },
-                    selected = it == currentDestination,
-                    onClick = { currentDestination = it }
+                    currentLanguage = currentLanguage,
+                    onLanguageChange = { 
+                        currentLanguage = it
+                        prefManager.setLanguage(it)
+                    }
                 )
             }
         }
-    ) {
-        Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-            Box(modifier = Modifier.padding(innerPadding).fillMaxSize()) {
-                when (currentDestination) {
-                    AppDestinations.HOME -> HomeScreen()
-                    AppDestinations.SEARCH -> SearchScreen()
-                    AppDestinations.SETTINGS -> SettingsScreen()
-                }
-            }
+    }
+}
+
+@Composable
+fun OtomotUZplusApp(
+    themeMode: ThemeMode,
+    onThemeChange: (ThemeMode) -> Unit,
+    currentLanguage: String,
+    onLanguageChange: (String) -> Unit
+) {
+    var currentDestination by rememberSaveable { mutableStateOf(AppDestinations.HOME) }
+    var showSettings by rememberSaveable { mutableStateOf(false) }
+    
+    val strings = if (currentLanguage == "Polski") PolishStrings else EnglishStrings
+
+    BackHandler(enabled = showSettings || currentDestination != AppDestinations.HOME) {
+        if (showSettings) {
+            showSettings = false
+        } else {
+            currentDestination = AppDestinations.HOME
         }
     }
-}
 
-enum class AppDestinations(val label: String, val icon: ImageVector) {
-    HOME("Główna", Icons.Filled.Home),
-    SEARCH("Szukaj", Icons.Filled.Search),
-    SETTINGS("Ustawienia", Icons.Filled.Settings),
-}
+    val navItems = listOf(
+        NavigationItem(AppDestinations.HOME, strings.home, Icons.Filled.Home, Icons.Outlined.Home),
+        NavigationItem(AppDestinations.SEARCH, strings.search, Icons.Filled.Search, Icons.Outlined.Search),
+        NavigationItem(AppDestinations.ADD, strings.add, Icons.Filled.AddCircle, Icons.Outlined.AddCircle),
+        NavigationItem(AppDestinations.FAVORITES, strings.favorites, Icons.Filled.Favorite, Icons.Outlined.FavoriteBorder),
+        NavigationItem(AppDestinations.PROFILE, strings.profile, Icons.Filled.Person, Icons.Outlined.Person)
+    )
 
+    val navItemColors = NavigationSuiteDefaults.itemColors(
+        navigationBarItemColors = NavigationBarItemDefaults.colors(
+            selectedIconColor = MaterialTheme.colorScheme.primary,
+            selectedTextColor = MaterialTheme.colorScheme.primary,
+            unselectedIconColor = Color.Gray,
+            unselectedTextColor = Color.Gray,
+            indicatorColor = Color.Transparent
+        )
+    )
 
-@Composable
-fun HomeScreen() {
-    Column(
-        modifier = Modifier.fillMaxSize().padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Text("Strona Główna", fontSize = 24.sp, fontWeight = FontWeight.Bold)
-        Text("To strona która odpala się na starcie aplikacji.", modifier = Modifier.padding(top = 8.dp))
-    }
-}
+    val navSuiteColors = NavigationSuiteDefaults.colors(
+        navigationBarContainerColor = MaterialTheme.colorScheme.background,
+        navigationBarContentColor = Color.Gray
+    )
 
-@Composable
-fun SearchScreen() {
-    Column(
-        modifier = Modifier.fillMaxSize().padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Text("Wyszukiwarka", fontSize = 24.sp, fontWeight = FontWeight.Bold)
-        Text("Tutaj dodamy filtry i listę aut.", modifier = Modifier.padding(top = 8.dp))
-    }
-}
-
-@Composable
-fun SettingsScreen() {
-    val context = LocalContext.current
-
-    Column(
-        modifier = Modifier.fillMaxSize().padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text("Ustawienia", fontSize = 24.sp, fontWeight = FontWeight.Bold)
-        Text("Tryb ciemny / Język - do zrobienia", modifier = Modifier.padding(top = 8.dp))
-
-        Spacer(modifier = Modifier.weight(1f))
-
-        Button(
-            onClick = {
-                FirebaseAuth.getInstance().signOut()
-                val intent = Intent(context, LoginActivity::class.java).apply {
-                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+    if (showSettings) {
+        SettingsScreen(
+            onBack = { showSettings = false },
+            themeMode = themeMode,
+            onThemeChange = onThemeChange,
+            currentLanguage = currentLanguage,
+            onLanguageChange = onLanguageChange,
+            strings = strings
+        )
+    } else {
+        NavigationSuiteScaffold(
+            navigationSuiteItems = {
+                navItems.forEach { item ->
+                    item(
+                        icon = {
+                            Icon(
+                                imageVector = if (item.destination == currentDestination) item.selectedIcon else item.unselectedIcon,
+                                contentDescription = item.label
+                            )
+                        },
+                        label = { Text(item.label) },
+                        selected = item.destination == currentDestination,
+                        onClick = { currentDestination = item.destination },
+                        colors = navItemColors
+                    )
                 }
-                context.startActivity(intent)
             },
-            modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
+            containerColor = MaterialTheme.colorScheme.background,
+            navigationSuiteColors = navSuiteColors
         ) {
-            Text("Wyloguj się")
+            Scaffold(
+                modifier = Modifier.fillMaxSize(),
+                containerColor = MaterialTheme.colorScheme.background
+            ) { innerPadding ->
+                Box(modifier = Modifier.padding(innerPadding).fillMaxSize()) {
+                    when (currentDestination) {
+                        AppDestinations.HOME -> PlaceholderScreen(strings.home)
+                        AppDestinations.SEARCH -> PlaceholderScreen(strings.search)
+                        AppDestinations.ADD -> PlaceholderScreen(strings.add)
+                        AppDestinations.FAVORITES -> PlaceholderScreen(strings.favorites)
+                        AppDestinations.PROFILE -> ProfileScreen(
+                            onSettingsClick = { showSettings = true },
+                            strings = strings
+                        )
+                    }
+                }
+            }
         }
     }
 }
