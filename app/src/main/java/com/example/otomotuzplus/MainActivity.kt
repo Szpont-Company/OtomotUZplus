@@ -26,7 +26,10 @@ import com.example.otomotuzplus.ui.models.EnglishStrings
 import com.example.otomotuzplus.ui.models.PolishStrings
 import com.example.otomotuzplus.ui.navigation.AppDestinations
 import com.example.otomotuzplus.ui.navigation.NavigationItem
+import com.example.otomotuzplus.ui.screens.favorites.FavoritesScreen
+import com.example.otomotuzplus.ui.screens.home.HomeScreen
 import com.example.otomotuzplus.ui.screens.profile.ProfileScreen
+import com.example.otomotuzplus.ui.screens.search.SearchScreen
 import com.example.otomotuzplus.ui.screens.settings.SettingsScreen
 import com.example.otomotuzplus.ui.theme.OtomotUZplusTheme
 
@@ -72,8 +75,21 @@ fun OtomotUZplusApp(
 ) {
     var currentDestination by rememberSaveable { mutableStateOf(AppDestinations.HOME) }
     var showSettings by rememberSaveable { mutableStateOf(false) }
-    
+    var pendingSearchQuery by rememberSaveable { mutableStateOf<String?>(null) }
+    var pendingSearchBrand by rememberSaveable { mutableStateOf<String?>(null) }
+    var pendingSearchShowFilters by rememberSaveable { mutableStateOf<Boolean?>(null) }
+    var favoriteCars by rememberSaveable { mutableStateOf(emptyList<String>()) }
+
     val strings = if (currentLanguage == "Polski") PolishStrings else EnglishStrings
+
+    fun openSearch(query: String? = null, brand: String? = null, showFilters: Boolean? = false) {
+        pendingSearchQuery = query
+        pendingSearchBrand = brand
+        pendingSearchShowFilters = showFilters
+        if (currentDestination != AppDestinations.SEARCH) {
+            currentDestination = AppDestinations.SEARCH
+        }
+    }
 
     BackHandler(enabled = showSettings || currentDestination != AppDestinations.HOME) {
         if (showSettings) {
@@ -142,10 +158,60 @@ fun OtomotUZplusApp(
             ) { innerPadding ->
                 Box(modifier = Modifier.padding(innerPadding).fillMaxSize()) {
                     when (currentDestination) {
-                        AppDestinations.HOME -> PlaceholderScreen(strings.home)
-                        AppDestinations.SEARCH -> PlaceholderScreen(strings.search)
+                        AppDestinations.HOME -> HomeScreen(
+                            strings = strings,
+                            onNavigateToSearch = { openSearch() },
+                            onNavigateToAdd = { currentDestination = AppDestinations.ADD },
+                            onSearchSubmit = { submittedQuery ->
+                                if (submittedQuery.isNotBlank()) {
+                                    openSearch(query = submittedQuery)
+                                }
+                            },
+                            onBrandSelect = { selectedBrand ->
+                                openSearch(brand = selectedBrand)
+                            },
+                            onSeeAllClick = { openSearch() },
+                            onNotificationsClick = { },
+                            favoriteCars = favoriteCars,
+                            onFavoriteToggle = { key ->
+                                favoriteCars = if (favoriteCars.contains(key)) {
+                                    favoriteCars - key
+                                } else {
+                                    favoriteCars + key
+                                }
+                            }
+                        )
+                        AppDestinations.SEARCH -> SearchScreen(
+                            strings = strings,
+                            initialQuery = pendingSearchQuery,
+                            initialBrand = pendingSearchBrand,
+                            initialShowFilters = pendingSearchShowFilters,
+                            favoriteCars = favoriteCars,
+                            onFavoriteToggle = { key ->
+                                favoriteCars = if (favoriteCars.contains(key)) {
+                                    favoriteCars - key
+                                } else {
+                                    favoriteCars + key
+                                }
+                            },
+                            onInitialFiltersConsumed = {
+                                pendingSearchQuery = null
+                                pendingSearchBrand = null
+                                pendingSearchShowFilters = null
+                            }
+                        )
                         AppDestinations.ADD -> PlaceholderScreen(strings.add)
-                        AppDestinations.FAVORITES -> PlaceholderScreen(strings.favorites)
+                        AppDestinations.FAVORITES -> FavoritesScreen(
+                            strings = strings,
+                            favoriteCars = favoriteCars,
+                            onFavoriteToggle = { key ->
+                                favoriteCars = if (favoriteCars.contains(key)) {
+                                    favoriteCars - key
+                                } else {
+                                    favoriteCars + key
+                                }
+                            }
+                        )
                         AppDestinations.PROFILE -> ProfileScreen(
                             onSettingsClick = { showSettings = true },
                             strings = strings
