@@ -2,6 +2,7 @@
 
 package com.example.otomotuzplus
 
+import android.content.pm.PackageManager
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
@@ -32,10 +33,20 @@ import com.example.otomotuzplus.ui.screens.profile.ProfileScreen
 import com.example.otomotuzplus.ui.screens.search.SearchScreen
 import com.example.otomotuzplus.ui.screens.settings.SettingsScreen
 import com.example.otomotuzplus.ui.theme.OtomotUZplusTheme
+import android.Manifest
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.content.Context
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
+import android.os.Build
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        createNotificationChannel()
         val prefManager = PreferenceManager(this)
         enableEdgeToEdge()
         setContent {
@@ -59,9 +70,37 @@ class MainActivity : ComponentActivity() {
                     onLanguageChange = { 
                         currentLanguage = it
                         prefManager.setLanguage(it)
+                    },
+                    onRequestNotificationPermission = {
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                            requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                        }
                     }
+
                 )
             }
+        }
+    }
+    private val requestPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted: Boolean ->
+        if (isGranted) {
+            // Użytkownik pozwolił, powiadomienia będą działać!
+        }
+    }
+    private fun createNotificationChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channelId = "offers_channel"
+            val name = "Nowe Oferty"
+            val descriptionText = "Powiadomienia o nowych autach i promocjach"
+            val importance = NotificationManager.IMPORTANCE_DEFAULT
+            val channel = NotificationChannel(channelId, name, importance).apply {
+                description = descriptionText
+            }
+
+            val notificationManager: NotificationManager =
+                getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            notificationManager.createNotificationChannel(channel)
         }
     }
 }
@@ -71,7 +110,8 @@ fun OtomotUZplusApp(
     themeMode: ThemeMode,
     onThemeChange: (ThemeMode) -> Unit,
     currentLanguage: String,
-    onLanguageChange: (String) -> Unit
+    onLanguageChange: (String) -> Unit,
+    onRequestNotificationPermission: () -> Unit
 ) {
     var currentDestination by rememberSaveable { mutableStateOf(AppDestinations.HOME) }
     var showSettings by rememberSaveable { mutableStateOf(false) }
@@ -79,8 +119,10 @@ fun OtomotUZplusApp(
     var pendingSearchBrand by rememberSaveable { mutableStateOf<String?>(null) }
     var pendingSearchShowFilters by rememberSaveable { mutableStateOf<Boolean?>(null) }
     var favoriteCars by rememberSaveable { mutableStateOf(emptyList<String>()) }
+    var showRationaleDialog by rememberSaveable { mutableStateOf(false) }
 
     val strings = if (currentLanguage == "Polski") PolishStrings else EnglishStrings
+    val context = LocalContext.current
 
     fun openSearch(query: String? = null, brand: String? = null, showFilters: Boolean? = false) {
         pendingSearchQuery = query
@@ -97,6 +139,59 @@ fun OtomotUZplusApp(
         } else {
             currentDestination = AppDestinations.HOME
         }
+    }
+
+    LaunchedEffect(Unit) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            val permission = Manifest.permission.POST_NOTIFICATIONS
+            val isGranted = ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED
+
+            if (!isGranted) {
+                showRationaleDialog = true
+            }
+        }
+    }
+
+    if (showRationaleDialog) {
+        AlertDialog(
+            onDismissRequest = {
+                showRationaleDialog = false
+            },
+            icon = { Icon(Icons.Filled.Notifications, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
+            title = {
+                Text(
+                    text = "Powiadomienia o okazjach",
+                    style = MaterialTheme.typography.headlineSmall
+                )
+            },
+            text = {
+                Text(
+                    text = "Ciągle przegapiasz tanie Passaty? Włącz powiadomienia, aby otrzymywać info o nowych autach i promocjach!",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showRationaleDialog = false
+                        onRequestNotificationPermission()
+                    }
+                ) {
+                    Text("Włącz")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showRationaleDialog = false
+                    }
+                ) {
+                    Text("Może później")
+                }
+            },
+            containerColor = MaterialTheme.colorScheme.surface,
+            tonalElevation = 6.dp
+        )
     }
 
     val navItems = listOf(
