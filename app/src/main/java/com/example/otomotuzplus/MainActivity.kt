@@ -200,7 +200,12 @@ fun OtomotUZplusApp(
                                 pendingSearchShowFilters = null
                             }
                         )
-                        AppDestinations.ADD -> PlaceholderScreen(strings.add)
+                        // NOWY KOD:
+                        AppDestinations.ADD -> com.example.otomotuzplus.ui.screens.add.AddScreen(
+                            onNavigateBack = {
+                                currentDestination = AppDestinations.HOME
+                            }
+                        )
                         AppDestinations.FAVORITES -> FavoritesScreen(
                             strings = strings,
                             favoriteCars = favoriteCars,

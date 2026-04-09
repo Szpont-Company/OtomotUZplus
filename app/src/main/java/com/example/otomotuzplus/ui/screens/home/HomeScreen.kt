@@ -79,41 +79,36 @@ fun HomeScreen(
     onFavoriteToggle: (String) -> Unit = {}
 ) {
     var query by rememberSaveable { mutableStateOf("") }
+    val context = androidx.compose.ui.platform.LocalContext.current
+    var carsFromDb by remember { androidx.compose.runtime.mutableStateOf<List<com.example.otomotuzplus.models.CarAd>>(emptyList()) }
+    val repository = remember { com.example.otomotuzplus.data.FirebaseRepository() }
+
+    androidx.compose.runtime.LaunchedEffect(Unit) {
+        repository.getAllCars(
+            onSuccess = { fetchedCars ->
+                carsFromDb = fetchedCars
+            },
+            onFailure = {
+            }
+        )
+    }
+
 
     val brands = remember {
         listOf("Porsche", "BMW", "Mercedes", "Audi", "VW")
     }
 
-    val arrivals = remember(strings) {
-        sampleListings().map { listing ->
+    val arrivals = remember(carsFromDb, strings) {
+        carsFromDb.map { listing ->
             ListingCardData(
-                title = listing.name,
-                year = listing.year.toString(),
-                mileageText = "${listing.mileageKm / 1000}k km",
-                fuelText = when (listing.fuelType) {
-                    "petrol" -> strings.fuelPetrol
-                    "diesel" -> strings.fuelDiesel
-                    "hybrid" -> strings.fuelHybrid
-                    "electric" -> strings.fuelElectric
-                    else -> listing.fuelType
-                },
-                bodyTypeText = when (listing.bodyType) {
-                    "sedan" -> "Sedan"
-                    "suv" -> "SUV"
-                    "coupe" -> "Coupe"
-                    "hatchback" -> "Hatchback"
-                    "wagon" -> "Wagon"
-                    else -> listing.bodyType
-                },
-                driveTypeText = when (listing.driveType) {
-                    "fwd" -> "FWD"
-                    "rwd" -> "RWD"
-                    "awd" -> "AWD"
-                    "4x4" -> "4x4"
-                    else -> listing.driveType
-                },
-                locationText = listing.location,
-                priceText = "${listing.price} zl",
+                title = listing.title,
+                year = listing.year,
+                mileageText = "${listing.mileageText} km",
+                fuelText = listing.fuelText,
+                bodyTypeText = listing.gearboxText,
+                driveTypeText = "${listing.engineCapacity} cm3",
+                locationText = listing.locationText,
+                priceText = "${listing.priceText} zł",
                 isFavorite = false,
                 onFavoriteClick = {}
             )
