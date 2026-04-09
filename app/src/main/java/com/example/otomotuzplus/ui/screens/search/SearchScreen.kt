@@ -44,6 +44,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -229,6 +230,11 @@ fun SearchScreen(
         }
 
         item {
+            val config = LocalConfiguration.current
+            val screenWidth = config.screenWidthDp
+            val placeholderSize = if (screenWidth < 360) 12.sp else 14.sp
+            val textSize = if (screenWidth < 360) 13.sp else 15.sp
+
             OutlinedTextField(
                 value = query,
                 onValueChange = { query = it },
@@ -236,12 +242,13 @@ fun SearchScreen(
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp),
                 placeholder = {
-                    Text(strings.searchPlaceholder, color = Slate400)
+                    Text(strings.searchPlaceholder, color = Slate400, fontSize = placeholderSize)
                 },
                 leadingIcon = {
                     Icon(Icons.Default.Search, contentDescription = null)
                 },
                 singleLine = true,
+                textStyle = androidx.compose.material3.LocalTextStyle.current.copy(fontSize = textSize),
                 shape = RoundedCornerShape(16.dp),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = MaterialTheme.colorScheme.outline,

@@ -49,6 +49,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
@@ -272,15 +273,21 @@ private fun SearchBar(
     placeholder: String,
     onSubmit: (String) -> Unit
 ) {
+    val config = LocalConfiguration.current
+    val screenWidth = config.screenWidthDp
+    val placeholderSize = if (screenWidth < 360) 12.sp else 14.sp
+    val textSize = if (screenWidth < 360) 13.sp else 15.sp
+
     OutlinedTextField(
         value = query,
         onValueChange = onQueryChange,
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp),
-        placeholder = { Text(text = placeholder, color = Slate400) },
+        placeholder = { Text(text = placeholder, color = Slate400, fontSize = placeholderSize) },
         leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
         singleLine = true,
+        textStyle = androidx.compose.material3.LocalTextStyle.current.copy(fontSize = textSize),
         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
         keyboardActions = KeyboardActions(
             onSearch = { onSubmit(query.trim()) }
@@ -310,40 +317,105 @@ private fun ActionTile(
     foreground: Color,
     onClick: () -> Unit = {}
 ) {
+    val config = LocalConfiguration.current
+    val screenWidth = config.screenWidthDp
+
+    val tileHeight: androidx.compose.ui.unit.Dp
+    val padding: androidx.compose.ui.unit.Dp
+    val titleSize: androidx.compose.ui.unit.TextUnit
+    val subtitleSize: androidx.compose.ui.unit.TextUnit
+    val spacingIconToTitle: androidx.compose.ui.unit.Dp
+    val spacingTitleToSubtitle: androidx.compose.ui.unit.Dp
+
+    when {
+        screenWidth < 360 -> {
+            // Very small screens
+            tileHeight = 85.dp
+            padding = 8.dp
+            titleSize = 10.sp
+            subtitleSize = 14.sp
+            spacingIconToTitle = 4.dp
+            spacingTitleToSubtitle = 2.dp
+        }
+        screenWidth < 380 -> {
+            // Small screens (Realme RMX2202 ~360-380dp)
+            tileHeight = 100.dp
+            padding = 10.dp
+            titleSize = 11.sp
+            subtitleSize = 15.sp
+            spacingIconToTitle = 6.dp
+            spacingTitleToSubtitle = 2.dp
+        }
+        screenWidth < 420 -> {
+            // Medium-small (Nothing Phone 2 ~380-410dp)
+            tileHeight = 125.dp
+            padding = 12.dp
+            titleSize = 13.sp
+            subtitleSize = 18.sp
+            spacingIconToTitle = 8.dp
+            spacingTitleToSubtitle = 2.dp
+        }
+        screenWidth < 600 -> {
+            // Medium screens
+            tileHeight = 120.dp
+            padding = 11.dp
+            titleSize = 14.sp
+            subtitleSize = 19.sp
+            spacingIconToTitle = 8.dp
+            spacingTitleToSubtitle = 2.dp
+        }
+        else -> {
+            // Large screens (tablets)
+            tileHeight = 150.dp
+            padding = 14.dp
+            titleSize = 13.sp
+            subtitleSize = 18.sp
+            spacingIconToTitle = 10.dp
+            spacingTitleToSubtitle = 3.dp
+        }
+    }
+
     Card(
         onClick = onClick,
-        modifier = modifier.heightIn(min = 132.dp),
+        modifier = modifier.heightIn(min = tileHeight),
         shape = RoundedCornerShape(22.dp),
         colors = CardDefaults.cardColors(containerColor = background),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
-        Box(modifier = Modifier.fillMaxSize().padding(14.dp)) {
-            Column(modifier = Modifier.align(Alignment.BottomStart)) {
-                Surface(
-                    shape = CircleShape,
-                    color = foreground.copy(alpha = 0.18f)
-                ) {
-                    Icon(
-                        imageVector = icon,
-                        contentDescription = null,
-                        tint = foreground,
-                        modifier = Modifier.padding(6.dp)
-                    )
-                }
-                Spacer(modifier = Modifier.height(14.dp))
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding),
+            verticalArrangement = Arrangement.Top,
+            horizontalAlignment = Alignment.Start
+        ) {
+            Surface(
+                shape = CircleShape,
+                color = foreground.copy(alpha = 0.18f)
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = foreground,
+                    modifier = Modifier.padding(6.dp)
+                )
+            }
+            Spacer(modifier = Modifier.height(spacingIconToTitle))
+            Column {
                 Text(
                     text = title,
                     color = foreground.copy(alpha = 0.72f),
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.SemiBold
+                    fontSize = titleSize,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.fillMaxWidth()
                 )
+                Spacer(modifier = Modifier.height(spacingTitleToSubtitle))
                 Text(
                     text = subtitle,
                     color = foreground,
-                    fontSize = 16.sp,
+                    fontSize = subtitleSize,
                     fontWeight = FontWeight.Bold,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
+                    modifier = Modifier.fillMaxWidth()
                 )
             }
         }
