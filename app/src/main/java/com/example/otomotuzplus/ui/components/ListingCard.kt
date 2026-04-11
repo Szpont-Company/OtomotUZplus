@@ -47,6 +47,17 @@ fun ListingCard(
     item: ListingCardData,
     modifier: Modifier = Modifier
 ) {
+    val title = item.title.trim()
+    val metadataLine1 = listOf(item.year, item.mileageText, item.fuelText)
+        .map { it.trim() }
+        .filter { it.isNotEmpty() }
+        .joinToString(" • ")
+    val metadataLine2 = listOf(item.bodyTypeText, item.driveTypeText, item.locationText)
+        .map { it.trim() }
+        .filter { it.isNotEmpty() }
+        .joinToString(" • ")
+    val price = item.priceText.trim()
+
     Card(
         modifier = modifier.fillMaxWidth(),
         shape = androidx.compose.foundation.shape.RoundedCornerShape(18.dp),
@@ -80,39 +91,44 @@ fun ListingCard(
             }
 
             Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(0.dp)) {
-                Text(
-                    text = item.title,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 18.sp,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
+                if (title.isNotEmpty()) {
+                    Text(
+                        text = title,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 18.sp,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
 
-                Spacer(modifier = Modifier.height(8.dp))
+                if (metadataLine1.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = metadataLine1,
+                        color = Slate400,
+                        fontSize = 14.sp
+                    )
+                }
 
-                Text(
-                    text = "${item.year} • ${item.mileageText} • ${item.fuelText}",
-                    color = Slate400,
-                    fontSize = 14.sp
-                )
+                if (metadataLine2.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = metadataLine2,
+                        color = Slate400,
+                        fontSize = 14.sp
+                    )
+                }
 
-                Spacer(modifier = Modifier.height(6.dp))
-
-                Text(
-                    text = "${item.bodyTypeText} • ${item.driveTypeText} • ${item.locationText}",
-                    color = Slate400,
-                    fontSize = 14.sp
-                )
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                Text(
-                    text = item.priceText,
-                    color = BrandGold,
-                    fontWeight = FontWeight.ExtraBold,
-                    fontSize = 21.sp
-                )
+                if (price.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(
+                        text = price,
+                        color = BrandGold,
+                        fontWeight = FontWeight.ExtraBold,
+                        fontSize = 21.sp
+                    )
+                }
             }
         }
     }

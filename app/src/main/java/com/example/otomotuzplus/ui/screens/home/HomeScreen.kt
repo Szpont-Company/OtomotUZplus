@@ -2,6 +2,7 @@ package com.example.otomotuzplus.ui.screens.home
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.layout.Arrangement
@@ -19,6 +20,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -59,6 +61,8 @@ import com.example.otomotuzplus.ui.components.ScreenHeader
 import com.example.otomotuzplus.ui.components.ListingCard
 import com.example.otomotuzplus.ui.components.ListingCardData
 import com.example.otomotuzplus.ui.models.AppStrings
+import com.example.otomotuzplus.ui.models.localizeFuelType
+import com.example.otomotuzplus.ui.models.localizeGearboxType
 import com.example.otomotuzplus.ui.models.sampleListings
 import com.example.otomotuzplus.ui.theme.BrandGold
 import com.example.otomotuzplus.ui.theme.DarkSlate800
@@ -68,6 +72,7 @@ import com.example.otomotuzplus.ui.theme.Slate400
 @Composable
 fun HomeScreen(
     strings: AppStrings,
+    carsFromDb: List<com.example.otomotuzplus.models.CarAd>,
     modifier: Modifier = Modifier,
     onNavigateToSearch: () -> Unit = {},
     onNavigateToAdd: () -> Unit = {},
@@ -76,44 +81,28 @@ fun HomeScreen(
     onSeeAllClick: () -> Unit = {},
     onNotificationsClick: () -> Unit = {},
     favoriteCars: List<String> = emptyList(),
-    onFavoriteToggle: (String) -> Unit = {}
+    onFavoriteToggle: (String) -> Unit = {},
+    onCarClick: (com.example.otomotuzplus.models.CarAd) -> Unit = {}
 ) {
     var query by rememberSaveable { mutableStateOf("") }
+    val context = androidx.compose.ui.platform.LocalContext.current
+
 
     val brands = remember {
         listOf("Porsche", "BMW", "Mercedes", "Audi", "VW")
     }
 
-    val arrivals = remember(strings) {
-        sampleListings().map { listing ->
+    val arrivals = remember(carsFromDb, strings) {
+        carsFromDb.map { listing ->
             ListingCardData(
-                title = listing.name,
-                year = listing.year.toString(),
-                mileageText = "${listing.mileageKm / 1000}k km",
-                fuelText = when (listing.fuelType) {
-                    "petrol" -> strings.fuelPetrol
-                    "diesel" -> strings.fuelDiesel
-                    "hybrid" -> strings.fuelHybrid
-                    "electric" -> strings.fuelElectric
-                    else -> listing.fuelType
-                },
-                bodyTypeText = when (listing.bodyType) {
-                    "sedan" -> "Sedan"
-                    "suv" -> "SUV"
-                    "coupe" -> "Coupe"
-                    "hatchback" -> "Hatchback"
-                    "wagon" -> "Wagon"
-                    else -> listing.bodyType
-                },
-                driveTypeText = when (listing.driveType) {
-                    "fwd" -> "FWD"
-                    "rwd" -> "RWD"
-                    "awd" -> "AWD"
-                    "4x4" -> "4x4"
-                    else -> listing.driveType
-                },
-                locationText = listing.location,
-                priceText = "${listing.price} zl",
+                title = listing.title,
+                year = listing.year,
+                mileageText = listing.mileageText.withSuffix(strings.unitKm),
+                fuelText = localizeFuelType(listing.fuelText, strings),
+                bodyTypeText = localizeGearboxType(listing.gearboxText, strings),
+                driveTypeText = listing.engineCapacity.withSuffix(strings.unitCm3),
+                locationText = listing.locationText,
+                priceText = listing.priceText.withSuffix(strings.unitCurrency),
                 isFavorite = false,
                 onFavoriteClick = {}
             )
@@ -208,13 +197,21 @@ fun HomeScreen(
             SectionHeader(title = strings.freshArrivals, actionLabel = null)
         }
 
-        items(arrivals) { car ->
+        itemsIndexed(arrivals) { index, carData ->
+            val originalCarFromDb = carsFromDb[index]
+
+            val carKey = "${originalCarFromDb.id}|${originalCarFromDb.title}"
+
             ListingCard(
-                item = car.copy(
-                    isFavorite = favoriteCars.contains(car.title + "|" + car.year),
-                    onFavoriteClick = { onFavoriteToggle(car.title + "|" + car.year) }
+                item = carData.copy(
+                    isFavorite = favoriteCars.contains(carKey),
+                    onFavoriteClick = { onFavoriteToggle(carKey) }
                 ),
-                modifier = Modifier.padding(horizontal = 16.dp)
+                modifier = Modifier
+                    .padding(horizontal = 16.dp)
+                    .clickable {
+                        onCarClick(originalCarFromDb)
+                    }
             )
         }
 
@@ -451,6 +448,11 @@ private fun SectionHeader(
             }
         }
     }
+}
+
+private fun String.withSuffix(suffix: String): String {
+    val value = trim()
+    return if (value.isEmpty()) "" else "$value $suffix"
 }
 
 
