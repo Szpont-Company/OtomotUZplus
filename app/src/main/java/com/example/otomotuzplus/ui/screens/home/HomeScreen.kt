@@ -61,6 +61,8 @@ import com.example.otomotuzplus.ui.components.ScreenHeader
 import com.example.otomotuzplus.ui.components.ListingCard
 import com.example.otomotuzplus.ui.components.ListingCardData
 import com.example.otomotuzplus.ui.models.AppStrings
+import com.example.otomotuzplus.ui.models.localizeFuelType
+import com.example.otomotuzplus.ui.models.localizeGearboxType
 import com.example.otomotuzplus.ui.models.sampleListings
 import com.example.otomotuzplus.ui.theme.BrandGold
 import com.example.otomotuzplus.ui.theme.DarkSlate800
@@ -95,12 +97,12 @@ fun HomeScreen(
             ListingCardData(
                 title = listing.title,
                 year = listing.year,
-                mileageText = "${listing.mileageText} km",
-                fuelText = listing.fuelText,
-                bodyTypeText = listing.gearboxText,
-                driveTypeText = "${listing.engineCapacity} cm3",
+                mileageText = listing.mileageText.withSuffix(strings.unitKm),
+                fuelText = localizeFuelType(listing.fuelText, strings),
+                bodyTypeText = localizeGearboxType(listing.gearboxText, strings),
+                driveTypeText = listing.engineCapacity.withSuffix(strings.unitCm3),
                 locationText = listing.locationText,
-                priceText = "${listing.priceText} zł",
+                priceText = listing.priceText.withSuffix(strings.unitCurrency),
                 isFavorite = false,
                 onFavoriteClick = {}
             )
@@ -446,6 +448,11 @@ private fun SectionHeader(
             }
         }
     }
+}
+
+private fun String.withSuffix(suffix: String): String {
+    val value = trim()
+    return if (value.isEmpty()) "" else "$value $suffix"
 }
 
 

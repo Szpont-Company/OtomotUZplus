@@ -55,6 +55,10 @@ import com.example.otomotuzplus.ui.components.ListingCard
 import com.example.otomotuzplus.ui.components.ListingCardData
 import com.example.otomotuzplus.ui.components.ScreenHeader
 import com.example.otomotuzplus.ui.models.AppStrings
+import com.example.otomotuzplus.ui.models.fuelTypeKey
+import com.example.otomotuzplus.ui.models.gearboxTypeKey
+import com.example.otomotuzplus.ui.models.localizeFuelType
+import com.example.otomotuzplus.ui.models.localizeGearboxType
 import com.example.otomotuzplus.ui.theme.BrandGold
 import com.example.otomotuzplus.ui.theme.Slate400
 import java.util.Locale
@@ -289,12 +293,12 @@ fun SearchScreen(
                     item = ListingCardData(
                         title = car.title,
                         year = car.year,
-                        mileageText = "${car.mileageText} km",
-                        fuelText = car.fuelText,
-                        bodyTypeText = car.gearboxText,
-                        driveTypeText = "${car.engineCapacity} cm3",
+                        mileageText = car.mileageText.withSuffix(strings.unitKm),
+                        fuelText = localizeFuelType(car.fuelText, strings),
+                        bodyTypeText = localizeGearboxType(car.gearboxText, strings),
+                        driveTypeText = car.engineCapacity.withSuffix(strings.unitCm3),
                         locationText = car.locationText,
-                        priceText = "${car.priceText} zł",
+                        priceText = car.priceText.withSuffix(strings.unitCurrency),
                         isFavorite = favoriteCars.contains(carKey),
                         onFavoriteClick = { onFavoriteToggle(carKey) }
                     ),
@@ -364,8 +368,18 @@ private fun FiltersCard(strings: AppStrings, filters: SearchFilters, onFiltersCh
             LabeledInput(label = strings.maxMileage, value = filters.maxMileage, onValueChange = { onFiltersChange(filters.copy(maxMileage = it.filter(Char::isDigit))) }, placeholder = "np. 60000")
             LabeledInput(label = strings.location, value = filters.location, onValueChange = { onFiltersChange(filters.copy(location = it)) }, placeholder = "np. Warszawa")
 
-            SingleSelectChipRow(label = strings.fuelType, options = listOf("Benzyna", "Diesel", "Elektryczny", "Hybryda"), selected = filters.fuelType, onSelectionChange = { onFiltersChange(filters.copy(fuelType = it)) })
-            SingleSelectChipRow(label = strings.transmission, options = listOf("Automatyczna", "Manualna"), selected = filters.transmission, onSelectionChange = { onFiltersChange(filters.copy(transmission = it)) })
+            SingleSelectChipRow(
+                label = strings.fuelType,
+                options = listOf(strings.fuelPetrol, strings.fuelDiesel, strings.fuelElectric, strings.fuelHybrid),
+                selected = filters.fuelType,
+                onSelectionChange = { onFiltersChange(filters.copy(fuelType = it)) }
+            )
+            SingleSelectChipRow(
+                label = strings.transmission,
+                options = listOf(strings.transmissionAutomatic, strings.transmissionManual),
+                selected = filters.transmission,
+                onSelectionChange = { onFiltersChange(filters.copy(transmission = it)) }
+            )
         }
     }
 }
@@ -435,8 +449,8 @@ private fun CarAd.matches(query: String, filters: SearchFilters): Boolean {
             (filters.brand.isNullOrBlank() || title.contains(filters.brand, ignoreCase = true)) &&
             (filters.modelQuery.isBlank() || title.contains(filters.modelQuery, ignoreCase = true)) &&
             (filters.location.isBlank() || locationText.contains(filters.location, ignoreCase = true)) &&
-            (filters.fuelType == null || fuelText.equals(filters.fuelType, ignoreCase = true)) &&
-            (filters.transmission == null || gearboxText.equals(filters.transmission, ignoreCase = true)) &&
+            (filters.fuelType == null || fuelTypeKey(fuelText) == fuelTypeKey(filters.fuelType)) &&
+            (filters.transmission == null || gearboxTypeKey(gearboxText) == gearboxTypeKey(filters.transmission)) &&
             (minPrice == null || carPrice >= minPrice) &&
             (maxPrice == null || carPrice <= maxPrice) &&
             (minYear == null || carYear >= minYear) &&
@@ -461,3 +475,9 @@ private fun buildActiveFilterItems(query: String, filters: SearchFilters, string
     if (filters.location.isNotBlank()) labels += ActiveFilterItem(ActiveFilterKey.LOCATION, "${strings.location}: ${filters.location.trim()}")
     return labels
 }
+
+private fun String.withSuffix(suffix: String): String {
+    val value = trim()
+    return if (value.isEmpty()) "" else "$value $suffix"
+}
+

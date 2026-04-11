@@ -18,11 +18,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.otomotuzplus.data.FirebaseRepository
 import com.example.otomotuzplus.models.CarAd
+import com.example.otomotuzplus.ui.models.AppStrings
 import com.example.otomotuzplus.ui.theme.BrandGold
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddScreen(
+    strings: AppStrings,
     onNavigateBack: () -> Unit
 ) {
     val context = LocalContext.current
@@ -32,8 +34,8 @@ fun AddScreen(
     var locationText by remember { mutableStateOf("") }
     var year by remember { mutableStateOf("") }
     var mileageText by remember { mutableStateOf("") }
-    var fuelText by remember { mutableStateOf("Benzyna") }
-    var gearboxText by remember { mutableStateOf("Manualna") }
+    var fuelText by remember(strings) { mutableStateOf(strings.fuelPetrol) }
+    var gearboxText by remember(strings) { mutableStateOf(strings.transmissionManual) }
     var engineCapacity by remember { mutableStateOf("") }
     var powerText by remember { mutableStateOf("") }
     var isUploading by remember { mutableStateOf(false) }
@@ -47,7 +49,7 @@ fun AddScreen(
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         Text(
-            text = "Dodaj ogłoszenie",
+            text = strings.addListingTitle,
             color = MaterialTheme.colorScheme.onBackground,
             fontSize = 24.sp,
             fontWeight = FontWeight.Bold,
@@ -57,7 +59,7 @@ fun AddScreen(
         OutlinedTextField(
             value = title,
             onValueChange = { title = it },
-            label = { Text("Marka i model") },
+            label = { Text(strings.brandAndModel) },
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
             colors = customTextFieldColors()
@@ -70,8 +72,8 @@ fun AddScreen(
             OutlinedTextField(
                 value = priceText,
                 onValueChange = { priceText = it.filter { char -> char.isDigit() } },
-                label = { Text("Cena") },
-                suffix = { Text("zł") },
+                label = { Text(strings.price) },
+                suffix = { Text(strings.unitCurrency) },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 modifier = Modifier.weight(1f),
                 singleLine = true,
@@ -80,7 +82,7 @@ fun AddScreen(
             OutlinedTextField(
                 value = year,
                 onValueChange = { year = it.filter { char -> char.isDigit() } },
-                label = { Text("Rocznik") },
+                label = { Text(strings.year) },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 modifier = Modifier.weight(1f),
                 singleLine = true,
@@ -95,8 +97,8 @@ fun AddScreen(
             OutlinedTextField(
                 value = mileageText,
                 onValueChange = { mileageText = it.filter { char -> char.isDigit() } },
-                label = { Text("Przebieg") },
-                suffix = { Text("km") },
+                label = { Text(strings.mileage) },
+                suffix = { Text(strings.unitKm) },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 modifier = Modifier.weight(1f),
                 singleLine = true,
@@ -105,7 +107,7 @@ fun AddScreen(
             OutlinedTextField(
                 value = locationText,
                 onValueChange = { locationText = it },
-                label = { Text("Miasto") },
+                label = { Text(strings.city) },
                 modifier = Modifier.weight(1f),
                 singleLine = true,
                 colors = customTextFieldColors()
@@ -114,7 +116,7 @@ fun AddScreen(
 
         Column(modifier = Modifier.fillMaxWidth()) {
             Text(
-                text = "Rodzaj paliwa",
+                text = strings.fuelType,
                 color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
                 fontSize = 14.sp,
                 modifier = Modifier.padding(start = 4.dp, bottom = 4.dp)
@@ -123,9 +125,9 @@ fun AddScreen(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                val isPetrol = fuelText == "Benzyna"
+                val isPetrol = fuelText == strings.fuelPetrol
                 Button(
-                    onClick = { fuelText = "Benzyna" },
+                    onClick = { fuelText = strings.fuelPetrol },
                     modifier = Modifier.weight(1f).height(50.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = if (isPetrol) BrandGold else MaterialTheme.colorScheme.surface,
@@ -133,12 +135,12 @@ fun AddScreen(
                     ),
                     shape = RoundedCornerShape(12.dp)
                 ) {
-                    Text("Benzyna", fontWeight = if (isPetrol) FontWeight.Bold else FontWeight.Normal)
+                    Text(strings.fuelPetrol, fontWeight = if (isPetrol) FontWeight.Bold else FontWeight.Normal)
                 }
 
-                val isDiesel = fuelText == "Diesel"
+                val isDiesel = fuelText == strings.fuelDiesel
                 Button(
-                    onClick = { fuelText = "Diesel" },
+                    onClick = { fuelText = strings.fuelDiesel },
                     modifier = Modifier.weight(1f).height(50.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = if (isDiesel) BrandGold else MaterialTheme.colorScheme.surface,
@@ -146,14 +148,14 @@ fun AddScreen(
                     ),
                     shape = RoundedCornerShape(12.dp)
                 ) {
-                    Text("Diesel", fontWeight = if (isDiesel) FontWeight.Bold else FontWeight.Normal)
+                    Text(strings.fuelDiesel, fontWeight = if (isDiesel) FontWeight.Bold else FontWeight.Normal)
                 }
             }
         }
 
         Column(modifier = Modifier.fillMaxWidth()) {
             Text(
-                text = "Skrzynia biegów",
+                text = strings.transmission,
                 color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
                 fontSize = 14.sp,
                 modifier = Modifier.padding(start = 4.dp, bottom = 4.dp)
@@ -162,9 +164,9 @@ fun AddScreen(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                val isManual = gearboxText == "Manualna"
+                val isManual = gearboxText == strings.transmissionManual
                 Button(
-                    onClick = { gearboxText = "Manualna" },
+                    onClick = { gearboxText = strings.transmissionManual },
                     modifier = Modifier.weight(1f).height(50.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = if (isManual) BrandGold else MaterialTheme.colorScheme.surface,
@@ -172,12 +174,12 @@ fun AddScreen(
                     ),
                     shape = RoundedCornerShape(12.dp)
                 ) {
-                    Text("Manualna", fontWeight = if (isManual) FontWeight.Bold else FontWeight.Normal)
+                    Text(strings.transmissionManual, fontWeight = if (isManual) FontWeight.Bold else FontWeight.Normal)
                 }
 
-                val isAuto = gearboxText == "Automatyczna"
+                val isAuto = gearboxText == strings.transmissionAutomatic
                 Button(
-                    onClick = { gearboxText = "Automatyczna" },
+                    onClick = { gearboxText = strings.transmissionAutomatic },
                     modifier = Modifier.weight(1f).height(50.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = if (isAuto) BrandGold else MaterialTheme.colorScheme.surface,
@@ -185,7 +187,7 @@ fun AddScreen(
                     ),
                     shape = RoundedCornerShape(12.dp)
                 ) {
-                    Text("Automatyczna", fontWeight = if (isAuto) FontWeight.Bold else FontWeight.Normal)
+                    Text(strings.transmissionAutomatic, fontWeight = if (isAuto) FontWeight.Bold else FontWeight.Normal)
                 }
             }
         }
@@ -197,8 +199,8 @@ fun AddScreen(
             OutlinedTextField(
                 value = engineCapacity,
                 onValueChange = { engineCapacity = it.filter { char -> char.isDigit() } },
-                label = { Text("Pojemność") },
-                suffix = { Text("cm3") },
+                label = { Text(strings.engineCapacityLabel) },
+                suffix = { Text(strings.unitCm3) },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 modifier = Modifier.weight(1f),
                 singleLine = true,
@@ -207,8 +209,8 @@ fun AddScreen(
             OutlinedTextField(
                 value = powerText,
                 onValueChange = { powerText = it.filter { char -> char.isDigit() } },
-                label = { Text("Moc") },
-                suffix = { Text("KM") },
+                label = { Text(strings.power) },
+                suffix = { Text(strings.unitPower) },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 modifier = Modifier.weight(1f),
                 singleLine = true,
@@ -222,7 +224,7 @@ fun AddScreen(
             onClick = {
                 if (title.isNotBlank() && priceText.isNotBlank()) {
                     isUploading = true
-                    val currentUserEmail = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.email ?: "brak emaila"
+                    val currentUserEmail = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.email ?: strings.noEmail
                     val newCar = CarAd(
                         title = title,
                         priceText = priceText,
@@ -241,16 +243,16 @@ fun AddScreen(
                         car = newCar,
                         onSuccess = {
                             isUploading = false
-                            Toast.makeText(context, "Ogłoszenie dodane!", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, strings.addListingSuccess, Toast.LENGTH_SHORT).show()
                             onNavigateBack()
                         },
                         onFailure = { e ->
                             isUploading = false
-                            Toast.makeText(context, "Błąd: ${e.message}", Toast.LENGTH_LONG).show()
+                            Toast.makeText(context, strings.addListingError.format(e.message ?: ""), Toast.LENGTH_LONG).show()
                         }
                     )
                 } else {
-                    Toast.makeText(context, "Podaj przynajmniej markę i cenę!", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, strings.addListingRequiredFields, Toast.LENGTH_SHORT).show()
                 }
             },
             modifier = Modifier
@@ -261,7 +263,7 @@ fun AddScreen(
             enabled = !isUploading
         ) {
             Text(
-                text = if (isUploading) "Wysyłanie..." else "Dodaj ogłoszenie",
+                text = if (isUploading) strings.uploading else strings.addListingTitle,
                 color = Color.Black,
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold

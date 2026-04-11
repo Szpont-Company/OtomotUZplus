@@ -153,7 +153,7 @@ fun ProfileScreen(
 fun MyListingsSection(strings: AppStrings, myCars: List<CarAd>, onCarClick: (CarAd) -> Unit) {
     if (myCars.isEmpty()) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text(text = "Nie dodałeś jeszcze żadnych ogłoszeń.", color = Color.Gray)
+            Text(text = strings.noListingsYet, color = Color.Gray)
         }
     } else {
         LazyColumn(
@@ -170,6 +170,14 @@ fun MyListingsSection(strings: AppStrings, myCars: List<CarAd>, onCarClick: (Car
 
 @Composable
 fun CarListingCard(car: CarAd, strings: AppStrings, onClick: () -> Unit) {
+    val title = car.title.trim()
+    val price = car.priceText.withSuffix(strings.unitCurrency)
+    val specsLine = listOf(
+        car.year.trim(),
+        car.mileageText.withSuffix(strings.unitKm)
+    ).filter { it.isNotEmpty() }
+        .joinToString(", ")
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -195,22 +203,28 @@ fun CarListingCard(car: CarAd, strings: AppStrings, onClick: () -> Unit) {
             Spacer(modifier = Modifier.width(16.dp))
 
             Column {
-                Text(
-                    text = "${car.priceText} zł",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Text(
-                    text = car.title,
-                    fontSize = 16.sp,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Text(
-                    text = "${car.year}, ${car.mileageText} km",
-                    fontSize = 14.sp,
-                    color = Color.Gray
-                )
+                if (price.isNotEmpty()) {
+                    Text(
+                        text = price,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+                if (title.isNotEmpty()) {
+                    Text(
+                        text = title,
+                        fontSize = 16.sp,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+                if (specsLine.isNotEmpty()) {
+                    Text(
+                        text = specsLine,
+                        fontSize = 14.sp,
+                        color = Color.Gray
+                    )
+                }
                 Text(
                     text = strings.listingsStatus,
                     fontSize = 12.sp,
@@ -221,3 +235,9 @@ fun CarListingCard(car: CarAd, strings: AppStrings, onClick: () -> Unit) {
         }
     }
 }
+
+private fun String.withSuffix(suffix: String): String {
+    val value = trim()
+    return if (value.isEmpty()) "" else "$value $suffix"
+}
+

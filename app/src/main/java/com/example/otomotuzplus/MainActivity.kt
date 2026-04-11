@@ -144,6 +144,7 @@ fun OtomotUZplusApp(
     if (selectedCar != null) {
         com.example.otomotuzplus.ui.screens.details.AdDetailScreen(
             car = selectedCar!!,
+            strings = strings,
             onBackClick = { selectedCar = null }
         )
     }
@@ -234,6 +235,7 @@ fun OtomotUZplusApp(
                             }
                         )
                         AppDestinations.ADD -> com.example.otomotuzplus.ui.screens.add.AddScreen(
+                            strings = strings,
                             onNavigateBack = {
                                 currentDestination = AppDestinations.HOME
                             }

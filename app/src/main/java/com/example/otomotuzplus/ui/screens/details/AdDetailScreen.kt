@@ -17,13 +17,31 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.otomotuzplus.models.CarAd
+import com.example.otomotuzplus.ui.models.AppStrings
+import com.example.otomotuzplus.ui.models.localizeFuelType
+import com.example.otomotuzplus.ui.models.localizeGearboxType
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AdDetailScreen(
     car: CarAd,
+    strings: AppStrings,
     onBackClick: () -> Unit
 ) {
+    val title = car.title.trim()
+    val location = car.locationText.trim()
+    val price = car.priceText.trim()
+    val seller = car.sellerId.trim()
+
+    val specs = buildList {
+        if (car.year.isNotBlank()) add(DetailSpec(Icons.Default.DateRange, car.year.trim(), strings.yearProduction))
+        if (car.mileageText.isNotBlank()) add(DetailSpec(Icons.Default.Speed, "${car.mileageText.trim()} ${strings.unitKm}", strings.mileage))
+        if (car.fuelText.isNotBlank()) add(DetailSpec(Icons.Default.LocalGasStation, localizeFuelType(car.fuelText, strings), strings.fuel))
+        if (car.gearboxText.isNotBlank()) add(DetailSpec(Icons.Default.Settings, localizeGearboxType(car.gearboxText, strings), strings.gearbox))
+        if (car.engineCapacity.isNotBlank()) add(DetailSpec(Icons.Default.Build, "${car.engineCapacity.trim()} ${strings.unitCm3}", strings.engineCapacityLabel))
+        if (car.powerText.isNotBlank()) add(DetailSpec(Icons.Default.ElectricBolt, "${car.powerText.trim()} ${strings.unitPower}", strings.power))
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -34,7 +52,7 @@ fun AdDetailScreen(
             title = { Text("") },
             navigationIcon = {
                 IconButton(onClick = onBackClick) {
-                    Icon(Icons.Default.ArrowBackIosNew, contentDescription = "Wróć", tint = MaterialTheme.colorScheme.onBackground)
+                    Icon(Icons.Default.ArrowBackIosNew, contentDescription = strings.back, tint = MaterialTheme.colorScheme.onBackground)
                 }
             },
             colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
@@ -57,7 +75,7 @@ fun AdDetailScreen(
                 .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(16.dp))
                 .padding(16.dp)
         ) {
-            Text(text = "Zweryfikowane ogłoszenie", color = Color.Gray, fontSize = 12.sp)
+            Text(text = strings.verifiedListing, color = Color.Gray, fontSize = 12.sp)
             Spacer(modifier = Modifier.height(4.dp))
 
             Row(
@@ -66,69 +84,79 @@ fun AdDetailScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(text = car.title, fontSize = 28.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
-                    Text(text = car.locationText, color = Color.Gray, fontSize = 14.sp)
+                    if (title.isNotEmpty()) {
+                        Text(text = title, fontSize = 28.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                    }
+                    if (location.isNotEmpty()) {
+                        Text(text = location, color = Color.Gray, fontSize = 14.sp)
+                    }
                 }
 
-                // Box z ceną
-                Box(
+                if (price.isNotEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(12.dp))
+                            .padding(horizontal = 16.dp, vertical = 12.dp)
+                    ) {
+                        Text(
+                            text = "$price ${strings.unitCurrency}",
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+
+            if (specs.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(24.dp))
+                specs.chunked(2).forEachIndexed { rowIndex, rowItems ->
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        rowItems.forEach { spec ->
+                            SpecItem(icon = spec.icon, title = spec.title, subtitle = spec.subtitle, modifier = Modifier.weight(1f))
+                        }
+                        if (rowItems.size == 1) {
+                            Spacer(modifier = Modifier.weight(1f))
+                        }
+                    }
+
+                    if (rowIndex < specs.chunked(2).lastIndex) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                    }
+                }
+            }
+
+            if (seller.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(24.dp))
+                Text(strings.seller, fontWeight = FontWeight.Bold, fontSize = 18.sp, color = MaterialTheme.colorScheme.onSurface)
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(
                     modifier = Modifier
+                        .fillMaxWidth()
                         .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(12.dp))
-                        .padding(horizontal = 16.dp, vertical = 12.dp)
+                        .padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
+                    Icon(Icons.Default.AccountCircle, contentDescription = null, modifier = Modifier.size(40.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Spacer(modifier = Modifier.width(12.dp))
                     Text(
-                        text = "${car.priceText} zł",
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        text = seller,
+                        fontSize = 16.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontWeight = FontWeight.Medium
                     )
                 }
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                SpecItem(icon = Icons.Default.DateRange, title = car.year, subtitle = "Rok produkcji", modifier = Modifier.weight(1f))
-                SpecItem(icon = Icons.Default.Speed, title = "${car.mileageText} km", subtitle = "Przebieg", modifier = Modifier.weight(1f))
-            }
-            Spacer(modifier = Modifier.height(8.dp))
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                SpecItem(icon = Icons.Default.LocalGasStation, title = car.fuelText, subtitle = "Paliwo", modifier = Modifier.weight(1f))
-                SpecItem(icon = Icons.Default.Settings, title = car.gearboxText, subtitle = "Skrzynia", modifier = Modifier.weight(1f))
-            }
-            Spacer(modifier = Modifier.height(8.dp))
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                SpecItem(icon = Icons.Default.Build, title = "${car.engineCapacity} cm3", subtitle = "Pojemność", modifier = Modifier.weight(1f))
-
-                val powerDisplay = if (car.powerText.isNotBlank()) "${car.powerText} KM" else "Brak danych"
-                SpecItem(icon = Icons.Default.ElectricBolt, title = powerDisplay, subtitle = "Moc", modifier = Modifier.weight(1f))
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-            Spacer(modifier = Modifier.height(24.dp))
-
-            Text("Sprzedający", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = MaterialTheme.colorScheme.onSurface)
-            Spacer(modifier = Modifier.height(8.dp))
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(12.dp))
-                    .padding(16.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(Icons.Default.AccountCircle, contentDescription = null, modifier = Modifier.size(40.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                Spacer(modifier = Modifier.width(12.dp))
-                Text(
-                    text = car.sellerId.ifBlank { "Anonimowy sprzedawca" },
-                    fontSize = 16.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontWeight = FontWeight.Medium
-                )
             }
         }
         Spacer(modifier = Modifier.height(24.dp))
     }
 }
+
+private data class DetailSpec(
+    val icon: ImageVector,
+    val title: String,
+    val subtitle: String
+)
 
 @Composable
 fun SpecItem(icon: ImageVector, title: String, subtitle: String, modifier: Modifier = Modifier) {

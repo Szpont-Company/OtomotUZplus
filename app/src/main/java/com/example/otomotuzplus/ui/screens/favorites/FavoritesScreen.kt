@@ -24,6 +24,8 @@ import com.example.otomotuzplus.ui.components.ListingCard
 import com.example.otomotuzplus.ui.components.ListingCardData
 import com.example.otomotuzplus.ui.components.ScreenHeader
 import com.example.otomotuzplus.ui.models.AppStrings
+import com.example.otomotuzplus.ui.models.localizeFuelType
+import com.example.otomotuzplus.ui.models.localizeGearboxType
 import com.example.otomotuzplus.ui.theme.Slate400
 
 @Composable
@@ -83,12 +85,12 @@ fun FavoritesScreen(
                     item = ListingCardData(
                         title = car.title,
                         year = car.year,
-                        mileageText = "${car.mileageText} km",
-                        fuelText = car.fuelText,
-                        bodyTypeText = car.gearboxText,
-                        driveTypeText = "${car.engineCapacity} cm3",
+                        mileageText = car.mileageText.withSuffix(strings.unitKm),
+                        fuelText = localizeFuelType(car.fuelText, strings),
+                        bodyTypeText = localizeGearboxType(car.gearboxText, strings),
+                        driveTypeText = car.engineCapacity.withSuffix(strings.unitCm3),
                         locationText = car.locationText,
-                        priceText = "${car.priceText} zł",
+                        priceText = car.priceText.withSuffix(strings.unitCurrency),
                         isFavorite = true,
                         onFavoriteClick = { onFavoriteToggle(carKey) }
                     ),
@@ -104,3 +106,9 @@ fun FavoritesScreen(
         }
     }
 }
+
+private fun String.withSuffix(suffix: String): String {
+    val value = trim()
+    return if (value.isEmpty()) "" else "$value $suffix"
+}
+
