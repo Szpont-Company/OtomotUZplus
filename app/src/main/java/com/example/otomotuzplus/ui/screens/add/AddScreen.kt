@@ -19,7 +19,6 @@ import androidx.compose.ui.unit.sp
 import com.example.otomotuzplus.data.FirebaseRepository
 import com.example.otomotuzplus.models.CarAd
 import com.example.otomotuzplus.ui.theme.BrandGold
-import com.example.otomotuzplus.ui.theme.DarkSlate800
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -28,7 +27,6 @@ fun AddScreen(
 ) {
     val context = LocalContext.current
     val repository = remember { FirebaseRepository() }
-
     var title by remember { mutableStateOf("") }
     var priceText by remember { mutableStateOf("") }
     var locationText by remember { mutableStateOf("") }
@@ -37,7 +35,7 @@ fun AddScreen(
     var fuelText by remember { mutableStateOf("Benzyna") }
     var gearboxText by remember { mutableStateOf("Manualna") }
     var engineCapacity by remember { mutableStateOf("") }
-
+    var powerText by remember { mutableStateOf("") }
     var isUploading by remember { mutableStateOf(false) }
 
     Column(
@@ -114,7 +112,6 @@ fun AddScreen(
             )
         }
 
-        // --- PALIWO ---
         Column(modifier = Modifier.fillMaxWidth()) {
             Text(
                 text = "Rodzaj paliwa",
@@ -154,7 +151,6 @@ fun AddScreen(
             }
         }
 
-        // --- SKRZYNIA BIEGÓW ---
         Column(modifier = Modifier.fillMaxWidth()) {
             Text(
                 text = "Skrzynia biegów",
@@ -194,27 +190,39 @@ fun AddScreen(
             }
         }
 
-        // --- POJEMNOŚĆ ---
-        OutlinedTextField(
-            value = engineCapacity,
-            onValueChange = { engineCapacity = it.filter { char -> char.isDigit() } },
-            label = { Text("Pojemność silnika") },
-            suffix = { Text("cm3") },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+        Row(
             modifier = Modifier.fillMaxWidth(),
-            singleLine = true,
-            colors = customTextFieldColors()
-        )
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            OutlinedTextField(
+                value = engineCapacity,
+                onValueChange = { engineCapacity = it.filter { char -> char.isDigit() } },
+                label = { Text("Pojemność") },
+                suffix = { Text("cm3") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                modifier = Modifier.weight(1f),
+                singleLine = true,
+                colors = customTextFieldColors()
+            )
+            OutlinedTextField(
+                value = powerText,
+                onValueChange = { powerText = it.filter { char -> char.isDigit() } },
+                label = { Text("Moc") },
+                suffix = { Text("KM") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                modifier = Modifier.weight(1f),
+                singleLine = true,
+                colors = customTextFieldColors()
+            )
+        }
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Przycisk Wysyłania
         Button(
             onClick = {
                 if (title.isNotBlank() && priceText.isNotBlank()) {
                     isUploading = true
-
-                    // Zapisujemy w bazie czyste dane bez jednostek!
+                    val currentUserEmail = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.email ?: "brak emaila"
                     val newCar = CarAd(
                         title = title,
                         priceText = priceText,
@@ -224,8 +232,9 @@ fun AddScreen(
                         fuelText = fuelText,
                         gearboxText = gearboxText,
                         engineCapacity = engineCapacity,
-                        powerText = "",
-                        imageUrl = ""
+                        powerText = powerText,
+                        imageUrl = "",
+                        sellerId = currentUserEmail
                     )
 
                     repository.addCar(
@@ -258,7 +267,6 @@ fun AddScreen(
                 fontWeight = FontWeight.Bold
             )
         }
-
         Spacer(modifier = Modifier.height(32.dp))
     }
 }

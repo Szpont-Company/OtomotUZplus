@@ -2,6 +2,7 @@ package com.example.otomotuzplus.ui.screens.home
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.layout.Arrangement
@@ -19,6 +20,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -68,6 +70,7 @@ import com.example.otomotuzplus.ui.theme.Slate400
 @Composable
 fun HomeScreen(
     strings: AppStrings,
+    carsFromDb: List<com.example.otomotuzplus.models.CarAd>,
     modifier: Modifier = Modifier,
     onNavigateToSearch: () -> Unit = {},
     onNavigateToAdd: () -> Unit = {},
@@ -76,22 +79,11 @@ fun HomeScreen(
     onSeeAllClick: () -> Unit = {},
     onNotificationsClick: () -> Unit = {},
     favoriteCars: List<String> = emptyList(),
-    onFavoriteToggle: (String) -> Unit = {}
+    onFavoriteToggle: (String) -> Unit = {},
+    onCarClick: (com.example.otomotuzplus.models.CarAd) -> Unit = {}
 ) {
     var query by rememberSaveable { mutableStateOf("") }
     val context = androidx.compose.ui.platform.LocalContext.current
-    var carsFromDb by remember { androidx.compose.runtime.mutableStateOf<List<com.example.otomotuzplus.models.CarAd>>(emptyList()) }
-    val repository = remember { com.example.otomotuzplus.data.FirebaseRepository() }
-
-    androidx.compose.runtime.LaunchedEffect(Unit) {
-        repository.getAllCars(
-            onSuccess = { fetchedCars ->
-                carsFromDb = fetchedCars
-            },
-            onFailure = {
-            }
-        )
-    }
 
 
     val brands = remember {
@@ -203,13 +195,21 @@ fun HomeScreen(
             SectionHeader(title = strings.freshArrivals, actionLabel = null)
         }
 
-        items(arrivals) { car ->
+        itemsIndexed(arrivals) { index, carData ->
+            val originalCarFromDb = carsFromDb[index]
+
+            val carKey = "${originalCarFromDb.id}|${originalCarFromDb.title}"
+
             ListingCard(
-                item = car.copy(
-                    isFavorite = favoriteCars.contains(car.title + "|" + car.year),
-                    onFavoriteClick = { onFavoriteToggle(car.title + "|" + car.year) }
+                item = carData.copy(
+                    isFavorite = favoriteCars.contains(carKey),
+                    onFavoriteClick = { onFavoriteToggle(carKey) }
                 ),
-                modifier = Modifier.padding(horizontal = 16.dp)
+                modifier = Modifier
+                    .padding(horizontal = 16.dp)
+                    .clickable {
+                        onCarClick(originalCarFromDb)
+                    }
             )
         }
 

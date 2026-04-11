@@ -1,6 +1,7 @@
 package com.example.otomotuzplus.ui.screens.search
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -49,26 +50,17 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.otomotuzplus.models.CarAd
 import com.example.otomotuzplus.ui.components.ListingCard
 import com.example.otomotuzplus.ui.components.ListingCardData
 import com.example.otomotuzplus.ui.components.ScreenHeader
 import com.example.otomotuzplus.ui.models.AppStrings
-import com.example.otomotuzplus.ui.models.CarListing
-import com.example.otomotuzplus.ui.models.favoriteKey
-import com.example.otomotuzplus.ui.models.sampleListings
 import com.example.otomotuzplus.ui.theme.BrandGold
 import com.example.otomotuzplus.ui.theme.Slate400
-import java.text.DecimalFormat
-import java.text.DecimalFormatSymbols
 import java.util.Locale
 
 enum class SortOption {
-    NAME_ASC,
-    NAME_DESC,
-    PRICE_ASC,
-    PRICE_DESC,
-    YEAR_DESC,
-    MILEAGE_ASC
+    NAME_ASC, NAME_DESC, PRICE_ASC, PRICE_DESC, YEAR_DESC, MILEAGE_ASC
 }
 
 data class SearchFilters(
@@ -81,55 +73,14 @@ data class SearchFilters(
     val maxMileage: String = "",
     val fuelType: String? = null,
     val transmission: String? = null,
-    val bodyType: String? = null,
-    val driveType: String? = null,
-    val carCondition: String? = null,
     val location: String = ""
 )
 
-private typealias CarSearchItem = CarListing
-
-private const val FUEL_PETROL = "petrol"
-private const val FUEL_DIESEL = "diesel"
-private const val FUEL_HYBRID = "hybrid"
-private const val FUEL_ELECTRIC = "electric"
-
-private const val TRANSMISSION_AUTOMATIC = "automatic"
-private const val TRANSMISSION_MANUAL = "manual"
-
-private const val BODY_SEDAN = "sedan"
-private const val BODY_SUV = "suv"
-private const val BODY_COUPE = "coupe"
-private const val BODY_HATCHBACK = "hatchback"
-private const val BODY_WAGON = "wagon"
-
-private const val DRIVE_FWD = "fwd"
-private const val DRIVE_RWD = "rwd"
-private const val DRIVE_AWD = "awd"
-private const val DRIVE_4X4 = "4x4"
-
-private const val CONDITION_USED = "used"
-private const val CONDITION_NEW = "new"
-
 private enum class ActiveFilterKey {
-    QUERY,
-    BRAND,
-    MODEL,
-    PRICE_RANGE,
-    YEAR_RANGE,
-    MAX_MILEAGE,
-    FUEL,
-    TRANSMISSION,
-    BODY,
-    DRIVE,
-    CONDITION,
-    LOCATION
+    QUERY, BRAND, MODEL, PRICE_RANGE, YEAR_RANGE, MAX_MILEAGE, FUEL, TRANSMISSION, LOCATION
 }
 
-private data class ActiveFilterItem(
-    val key: ActiveFilterKey,
-    val label: String
-)
+private data class ActiveFilterItem(val key: ActiveFilterKey, val label: String)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -141,6 +92,8 @@ fun SearchScreen(
     initialShowFilters: Boolean? = null,
     favoriteCars: List<String> = emptyList(),
     onFavoriteToggle: (String) -> Unit = {},
+    allCarsFromDb: List<CarAd>,
+    onCarClick: (CarAd) -> Unit,
     onInitialFiltersConsumed: () -> Unit = {}
 ) {
     var query by rememberSaveable { mutableStateOf("") }
@@ -149,8 +102,7 @@ fun SearchScreen(
     var sortOption by rememberSaveable { mutableStateOf(SortOption.NAME_ASC) }
     var filters by remember { mutableStateOf(SearchFilters()) }
 
-    val allCars = remember { sampleListings() }
-    var visibleCars by remember { mutableStateOf(allCars) }
+    var visibleCars by remember { mutableStateOf(allCarsFromDb) }
 
     LaunchedEffect(initialQuery, initialBrand, initialShowFilters) {
         val hasPresetQuery = !initialQuery.isNullOrBlank()
@@ -168,8 +120,8 @@ fun SearchScreen(
         buildActiveFilterItems(query = query, filters = filters, strings = strings)
     }
 
-    LaunchedEffect(query, filters, sortOption) {
-        visibleCars = allCars
+    LaunchedEffect(query, filters, sortOption, allCarsFromDb) {
+        visibleCars = allCarsFromDb
             .filter { it.matches(query, filters) }
             .sortedWith(sortComparator(sortOption))
     }
@@ -307,9 +259,6 @@ fun SearchScreen(
                             ActiveFilterKey.MAX_MILEAGE -> filters = filters.copy(maxMileage = "")
                             ActiveFilterKey.FUEL -> filters = filters.copy(fuelType = null)
                             ActiveFilterKey.TRANSMISSION -> filters = filters.copy(transmission = null)
-                            ActiveFilterKey.BODY -> filters = filters.copy(bodyType = null)
-                            ActiveFilterKey.DRIVE -> filters = filters.copy(driveType = null)
-                            ActiveFilterKey.CONDITION -> filters = filters.copy(carCondition = null)
                             ActiveFilterKey.LOCATION -> filters = filters.copy(location = "")
                         }
                     }
@@ -335,36 +284,33 @@ fun SearchScreen(
             }
         } else {
             items(visibleCars) { car ->
-                val carKey = car.favoriteKey()
+                val carKey = "${car.id}|${car.title}"
                 ListingCard(
                     item = ListingCardData(
-                        title = car.name,
-                        year = car.year.toString(),
-                        mileageText = "${car.mileageKm / 1000}k km",
-                        fuelText = fuelLabel(car.fuelType, strings),
-                        bodyTypeText = bodyTypeLabel(car.bodyType, strings),
-                        driveTypeText = driveTypeLabel(car.driveType, strings),
-                        locationText = car.location,
-                        priceText = formatPrice(car.price),
+                        title = car.title,
+                        year = car.year,
+                        mileageText = "${car.mileageText} km",
+                        fuelText = car.fuelText,
+                        bodyTypeText = car.gearboxText,
+                        driveTypeText = "${car.engineCapacity} cm3",
+                        locationText = car.locationText,
+                        priceText = "${car.priceText} zł",
                         isFavorite = favoriteCars.contains(carKey),
                         onFavoriteClick = { onFavoriteToggle(carKey) }
                     ),
-                    modifier = Modifier.padding(horizontal = 16.dp)
+                    modifier = Modifier
+                        .padding(horizontal = 16.dp)
+                        .clickable { onCarClick(car) }
                 )
             }
         }
 
-        item {
-            Spacer(modifier = Modifier.height(10.dp))
-        }
+        item { Spacer(modifier = Modifier.height(10.dp)) }
     }
 }
 
 @Composable
-private fun ActiveFiltersRow(
-    filters: List<ActiveFilterItem>,
-    onRemove: (ActiveFilterKey) -> Unit
-) {
+private fun ActiveFiltersRow(filters: List<ActiveFilterItem>, onRemove: (ActiveFilterKey) -> Unit) {
     LazyRow(
         modifier = Modifier.fillMaxWidth(),
         contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 16.dp),
@@ -385,11 +331,7 @@ private fun ActiveFiltersRow(
                         overflow = TextOverflow.Ellipsis
                     )
                     IconButton(onClick = { onRemove(filter.key) }) {
-                        Icon(
-                            imageVector = Icons.Default.Close,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                        Icon(Icons.Default.Close, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
             }
@@ -398,161 +340,47 @@ private fun ActiveFiltersRow(
 }
 
 @Composable
-private fun FiltersCard(
-    strings: AppStrings,
-    filters: SearchFilters,
-    onFiltersChange: (SearchFilters) -> Unit
-) {
+private fun FiltersCard(strings: AppStrings, filters: SearchFilters, onFiltersChange: (SearchFilters) -> Unit) {
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
-        Column(
-            modifier = Modifier.padding(14.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            Text(
-                text = strings.filters,
-                color = MaterialTheme.colorScheme.onSurface,
-                fontWeight = FontWeight.Bold,
-                fontSize = 17.sp
-            )
+        Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text(text = strings.filters, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold, fontSize = 17.sp)
 
-            LabeledInput(
-                label = strings.brand,
-                value = filters.brand ?: "",
-                onValueChange = { onFiltersChange(filters.copy(brand = it.ifBlank { null })) },
-                placeholder = "BMW"
-            )
-
-            LabeledInput(
-                label = strings.model,
-                value = filters.modelQuery,
-                onValueChange = { onFiltersChange(filters.copy(modelQuery = it)) },
-                placeholder = "M4"
-            )
+            LabeledInput(label = strings.brand, value = filters.brand ?: "", onValueChange = { onFiltersChange(filters.copy(brand = it.ifBlank { null })) }, placeholder = "np. BMW")
+            LabeledInput(label = strings.model, value = filters.modelQuery, onValueChange = { onFiltersChange(filters.copy(modelQuery = it)) }, placeholder = "np. M4")
 
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                LabeledInput(
-                    label = strings.minPrice,
-                    value = filters.minPrice,
-                    onValueChange = { onFiltersChange(filters.copy(minPrice = it.filter(Char::isDigit))) },
-                    modifier = Modifier.weight(1f)
-                )
-                LabeledInput(
-                    label = strings.maxPrice,
-                    value = filters.maxPrice,
-                    onValueChange = { onFiltersChange(filters.copy(maxPrice = it.filter(Char::isDigit))) },
-                    modifier = Modifier.weight(1f)
-                )
+                LabeledInput(label = strings.minPrice, value = filters.minPrice, onValueChange = { onFiltersChange(filters.copy(minPrice = it.filter(Char::isDigit))) }, modifier = Modifier.weight(1f))
+                LabeledInput(label = strings.maxPrice, value = filters.maxPrice, onValueChange = { onFiltersChange(filters.copy(maxPrice = it.filter(Char::isDigit))) }, modifier = Modifier.weight(1f))
             }
-
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                LabeledInput(
-                    label = strings.minYear,
-                    value = filters.minYear,
-                    onValueChange = { onFiltersChange(filters.copy(minYear = it.filter(Char::isDigit).take(4))) },
-                    modifier = Modifier.weight(1f)
-                )
-                LabeledInput(
-                    label = strings.maxYear,
-                    value = filters.maxYear,
-                    onValueChange = { onFiltersChange(filters.copy(maxYear = it.filter(Char::isDigit).take(4))) },
-                    modifier = Modifier.weight(1f)
-                )
+                LabeledInput(label = strings.minYear, value = filters.minYear, onValueChange = { onFiltersChange(filters.copy(minYear = it.filter(Char::isDigit).take(4))) }, modifier = Modifier.weight(1f))
+                LabeledInput(label = strings.maxYear, value = filters.maxYear, onValueChange = { onFiltersChange(filters.copy(maxYear = it.filter(Char::isDigit).take(4))) }, modifier = Modifier.weight(1f))
             }
 
-            LabeledInput(
-                label = strings.maxMileage,
-                value = filters.maxMileage,
-                onValueChange = { onFiltersChange(filters.copy(maxMileage = it.filter(Char::isDigit))) },
-                placeholder = "60000"
-            )
+            LabeledInput(label = strings.maxMileage, value = filters.maxMileage, onValueChange = { onFiltersChange(filters.copy(maxMileage = it.filter(Char::isDigit))) }, placeholder = "np. 60000")
+            LabeledInput(label = strings.location, value = filters.location, onValueChange = { onFiltersChange(filters.copy(location = it)) }, placeholder = "np. Warszawa")
 
-            LabeledInput(
-                label = strings.location,
-                value = filters.location,
-                onValueChange = { onFiltersChange(filters.copy(location = it)) },
-                placeholder = "Warszawa"
-            )
-
-            SingleSelectChipRow(
-                label = strings.fuelType,
-                options = listOf(FUEL_PETROL, FUEL_DIESEL, FUEL_HYBRID, FUEL_ELECTRIC),
-                selected = filters.fuelType,
-                onSelectionChange = { onFiltersChange(filters.copy(fuelType = it)) },
-                labelProvider = { fuelLabel(it, strings) }
-            )
-
-            SingleSelectChipRow(
-                label = strings.transmission,
-                options = listOf(TRANSMISSION_AUTOMATIC, TRANSMISSION_MANUAL),
-                selected = filters.transmission,
-                onSelectionChange = { onFiltersChange(filters.copy(transmission = it)) },
-                labelProvider = { transmissionLabel(it, strings) }
-            )
-
-            SingleSelectChipRow(
-                label = strings.bodyType,
-                options = listOf(BODY_SEDAN, BODY_SUV, BODY_COUPE, BODY_HATCHBACK, BODY_WAGON),
-                selected = filters.bodyType,
-                onSelectionChange = { onFiltersChange(filters.copy(bodyType = it)) },
-                labelProvider = { bodyTypeLabel(it, strings) }
-            )
-
-            SingleSelectChipRow(
-                label = strings.driveType,
-                options = listOf(DRIVE_FWD, DRIVE_RWD, DRIVE_AWD, DRIVE_4X4),
-                selected = filters.driveType,
-                onSelectionChange = { onFiltersChange(filters.copy(driveType = it)) },
-                labelProvider = { driveTypeLabel(it, strings) }
-            )
-
-            SingleSelectChipRow(
-                label = strings.condition,
-                options = listOf(CONDITION_USED, CONDITION_NEW),
-                selected = filters.carCondition,
-                onSelectionChange = { onFiltersChange(filters.copy(carCondition = it)) },
-                labelProvider = { conditionLabel(it, strings) }
-            )
+            SingleSelectChipRow(label = strings.fuelType, options = listOf("Benzyna", "Diesel", "Elektryczny", "Hybryda"), selected = filters.fuelType, onSelectionChange = { onFiltersChange(filters.copy(fuelType = it)) })
+            SingleSelectChipRow(label = strings.transmission, options = listOf("Automatyczna", "Manualna"), selected = filters.transmission, onSelectionChange = { onFiltersChange(filters.copy(transmission = it)) })
         }
     }
 }
 
 @Composable
-private fun SingleSelectChipRow(
-    label: String,
-    options: List<String>,
-    selected: String?,
-    onSelectionChange: (String?) -> Unit,
-    labelProvider: (String) -> String = { it }
-) {
+private fun SingleSelectChipRow(label: String, options: List<String>, selected: String?, onSelectionChange: (String?) -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Text(
-            text = label,
-            color = MaterialTheme.colorScheme.onSurface,
-            fontWeight = FontWeight.Medium
-        )
+        Text(text = label, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Medium)
         LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             items(options) { option ->
                 FilterChip(
                     selected = selected == option,
-                    onClick = {
-                        if (selected == option) onSelectionChange(null) else onSelectionChange(option)
-                    },
-                    label = { Text(labelProvider(option)) },
-                    leadingIcon = {
-                        if (selected == option) {
-                            Icon(
-                                imageVector = Icons.Default.KeyboardArrowDown,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary
-                            )
-                        }
-                    }
+                    onClick = { if (selected == option) onSelectionChange(null) else onSelectionChange(option) },
+                    label = { Text(option) },
+                    leadingIcon = { if (selected == option) { Icon(Icons.Default.KeyboardArrowDown, null, tint = MaterialTheme.colorScheme.primary) } }
                 )
             }
         }
@@ -561,30 +389,13 @@ private fun SingleSelectChipRow(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun LabeledInput(
-    label: String,
-    value: String,
-    onValueChange: (String) -> Unit,
-    modifier: Modifier = Modifier,
-    placeholder: String = ""
-) {
+private fun LabeledInput(label: String, value: String, onValueChange: (String) -> Unit, modifier: Modifier = Modifier, placeholder: String = "") {
     OutlinedTextField(
-        value = value,
-        onValueChange = onValueChange,
-        modifier = modifier.fillMaxWidth(),
-        label = { Text(label) },
-        placeholder = {
-            if (placeholder.isNotEmpty()) {
-                Text(placeholder)
-            }
-        },
-        singleLine = true,
-        shape = RoundedCornerShape(12.dp),
+        value = value, onValueChange = onValueChange, modifier = modifier.fillMaxWidth(), label = { Text(label) },
+        placeholder = { if (placeholder.isNotEmpty()) { Text(placeholder) } }, singleLine = true, shape = RoundedCornerShape(12.dp),
         colors = OutlinedTextFieldDefaults.colors(
-            focusedBorderColor = MaterialTheme.colorScheme.outline,
-            unfocusedBorderColor = MaterialTheme.colorScheme.outline,
-            focusedContainerColor = MaterialTheme.colorScheme.surface,
-            unfocusedContainerColor = MaterialTheme.colorScheme.surface
+            focusedBorderColor = MaterialTheme.colorScheme.outline, unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+            focusedContainerColor = MaterialTheme.colorScheme.surface, unfocusedContainerColor = MaterialTheme.colorScheme.surface
         )
     )
 }
@@ -592,24 +403,21 @@ private fun LabeledInput(
 private data class SortLabel(val value: SortOption, val label: String)
 
 private fun sortOptions(strings: AppStrings): List<SortLabel> = listOf(
-    SortLabel(SortOption.NAME_ASC, strings.sortNameAsc),
-    SortLabel(SortOption.NAME_DESC, strings.sortNameDesc),
-    SortLabel(SortOption.PRICE_ASC, strings.sortPriceAsc),
-    SortLabel(SortOption.PRICE_DESC, strings.sortPriceDesc),
-    SortLabel(SortOption.YEAR_DESC, strings.sortYearDesc),
-    SortLabel(SortOption.MILEAGE_ASC, strings.sortMileageAsc)
+    SortLabel(SortOption.NAME_ASC, strings.sortNameAsc), SortLabel(SortOption.NAME_DESC, strings.sortNameDesc),
+    SortLabel(SortOption.PRICE_ASC, strings.sortPriceAsc), SortLabel(SortOption.PRICE_DESC, strings.sortPriceDesc),
+    SortLabel(SortOption.YEAR_DESC, strings.sortYearDesc), SortLabel(SortOption.MILEAGE_ASC, strings.sortMileageAsc)
 )
 
-private fun sortComparator(option: SortOption): Comparator<CarSearchItem> = when (option) {
-    SortOption.NAME_ASC -> compareBy { it.name.lowercase(Locale.getDefault()) }
-    SortOption.NAME_DESC -> compareByDescending { it.name.lowercase(Locale.getDefault()) }
-    SortOption.PRICE_ASC -> compareBy { it.price }
-    SortOption.PRICE_DESC -> compareByDescending { it.price }
-    SortOption.YEAR_DESC -> compareByDescending { it.year }
-    SortOption.MILEAGE_ASC -> compareBy { it.mileageKm }
+private fun sortComparator(option: SortOption): Comparator<CarAd> = when (option) {
+    SortOption.NAME_ASC -> compareBy { it.title.lowercase(Locale.getDefault()) }
+    SortOption.NAME_DESC -> compareByDescending { it.title.lowercase(Locale.getDefault()) }
+    SortOption.PRICE_ASC -> compareBy { it.priceText.filter(Char::isDigit).toIntOrNull() ?: 0 }
+    SortOption.PRICE_DESC -> compareByDescending { it.priceText.filter(Char::isDigit).toIntOrNull() ?: 0 }
+    SortOption.YEAR_DESC -> compareByDescending { it.year.toIntOrNull() ?: 0 }
+    SortOption.MILEAGE_ASC -> compareBy { it.mileageText.filter(Char::isDigit).toIntOrNull() ?: 0 }
 }
 
-private fun CarSearchItem.matches(query: String, filters: SearchFilters): Boolean {
+private fun CarAd.matches(query: String, filters: SearchFilters): Boolean {
     val normalizedQuery = query.trim()
     val minPrice = filters.minPrice.toIntOrNull()
     val maxPrice = filters.maxPrice.toIntOrNull()
@@ -617,105 +425,39 @@ private fun CarSearchItem.matches(query: String, filters: SearchFilters): Boolea
     val maxYear = filters.maxYear.toIntOrNull()
     val maxMileage = filters.maxMileage.toIntOrNull()
 
-    val queryMatch = normalizedQuery.isBlank() ||
-        name.contains(normalizedQuery, ignoreCase = true) ||
-        brand.contains(normalizedQuery, ignoreCase = true) ||
-        model.contains(normalizedQuery, ignoreCase = true)
+    val carPrice = priceText.filter(Char::isDigit).toIntOrNull() ?: 0
+    val carYear = year.toIntOrNull() ?: 0
+    val carMileage = mileageText.filter(Char::isDigit).toIntOrNull() ?: 0
+
+    val queryMatch = normalizedQuery.isBlank() || title.contains(normalizedQuery, ignoreCase = true)
 
     return queryMatch &&
-        (filters.brand.isNullOrBlank() || brand.contains(filters.brand, ignoreCase = true)) &&
-        (filters.modelQuery.isBlank() || model.contains(filters.modelQuery, ignoreCase = true)) &&
-        (filters.location.isBlank() || location.contains(filters.location, ignoreCase = true)) &&
-        (filters.fuelType == null || fuelType.equals(filters.fuelType, ignoreCase = true)) &&
-        (filters.transmission == null || transmission.equals(filters.transmission, ignoreCase = true)) &&
-        (filters.bodyType == null || bodyType.equals(filters.bodyType, ignoreCase = true)) &&
-        (filters.driveType == null || driveType.equals(filters.driveType, ignoreCase = true)) &&
-        (filters.carCondition == null || carCondition.equals(filters.carCondition, ignoreCase = true)) &&
-        (minPrice == null || price >= minPrice) &&
-        (maxPrice == null || price <= maxPrice) &&
-        (minYear == null || year >= minYear) &&
-        (maxYear == null || year <= maxYear) &&
-        (maxMileage == null || mileageKm <= maxMileage)
+            (filters.brand.isNullOrBlank() || title.contains(filters.brand, ignoreCase = true)) &&
+            (filters.modelQuery.isBlank() || title.contains(filters.modelQuery, ignoreCase = true)) &&
+            (filters.location.isBlank() || locationText.contains(filters.location, ignoreCase = true)) &&
+            (filters.fuelType == null || fuelText.equals(filters.fuelType, ignoreCase = true)) &&
+            (filters.transmission == null || gearboxText.equals(filters.transmission, ignoreCase = true)) &&
+            (minPrice == null || carPrice >= minPrice) &&
+            (maxPrice == null || carPrice <= maxPrice) &&
+            (minYear == null || carYear >= minYear) &&
+            (maxYear == null || carYear <= maxYear) &&
+            (maxMileage == null || carMileage <= maxMileage)
 }
 
-
-private fun bodyTypeLabel(value: String, strings: AppStrings): String = when (value.lowercase(Locale.getDefault())) {
-    BODY_SEDAN -> strings.bodySedan
-    BODY_SUV -> strings.bodySuv
-    BODY_COUPE -> strings.bodyCoupe
-    BODY_HATCHBACK -> strings.bodyHatchback
-    BODY_WAGON -> strings.bodyWagon
-    else -> value
-}
-
-private fun driveTypeLabel(value: String, strings: AppStrings): String = when (value.lowercase(Locale.getDefault())) {
-    DRIVE_FWD -> strings.driveFwd
-    DRIVE_RWD -> strings.driveRwd
-    DRIVE_AWD -> strings.driveAwd
-    DRIVE_4X4 -> strings.drive4x4
-    else -> value
-}
-
-private fun conditionLabel(value: String, strings: AppStrings): String = when (value.lowercase(Locale.getDefault())) {
-    CONDITION_USED -> strings.conditionUsed
-    CONDITION_NEW -> strings.conditionNew
-    else -> value
-}
-
-private fun fuelLabel(value: String, strings: AppStrings): String = when (value.lowercase(Locale.getDefault())) {
-    FUEL_PETROL -> strings.fuelPetrol
-    FUEL_DIESEL -> strings.fuelDiesel
-    FUEL_HYBRID -> strings.fuelHybrid
-    FUEL_ELECTRIC -> strings.fuelElectric
-    else -> value
-}
-
-private fun transmissionLabel(value: String, strings: AppStrings): String = when (value.lowercase(Locale.getDefault())) {
-    TRANSMISSION_AUTOMATIC -> strings.transmissionAutomatic
-    TRANSMISSION_MANUAL -> strings.transmissionManual
-    else -> value
-}
-
-private fun formatPrice(price: Int): String {
-    val symbols = DecimalFormatSymbols(Locale.forLanguageTag("pl-PL")).apply {
-        groupingSeparator = ' '
-    }
-    val formatter = DecimalFormat("#,###", symbols)
-    return "${formatter.format(price)} zl"
-}
-
-private fun buildActiveFilterItems(
-    query: String,
-    filters: SearchFilters,
-    strings: AppStrings
-): List<ActiveFilterItem> {
+private fun buildActiveFilterItems(query: String, filters: SearchFilters, strings: AppStrings): List<ActiveFilterItem> {
     val labels = mutableListOf<ActiveFilterItem>()
     if (query.isNotBlank()) labels += ActiveFilterItem(ActiveFilterKey.QUERY, "${strings.search}: ${query.trim()}")
     if (!filters.brand.isNullOrBlank()) labels += ActiveFilterItem(ActiveFilterKey.BRAND, "${strings.brand}: ${filters.brand.trim()}")
     if (filters.modelQuery.isNotBlank()) labels += ActiveFilterItem(ActiveFilterKey.MODEL, "${strings.model}: ${filters.modelQuery.trim()}")
     if (filters.minPrice.isNotBlank() || filters.maxPrice.isNotBlank()) {
-        val from = filters.minPrice.ifBlank { "-" }
-        val to = filters.maxPrice.ifBlank { "-" }
-        labels += ActiveFilterItem(ActiveFilterKey.PRICE_RANGE, "${strings.minPrice}/${strings.maxPrice}: $from-$to")
+        labels += ActiveFilterItem(ActiveFilterKey.PRICE_RANGE, "${strings.minPrice}/${strings.maxPrice}: ${filters.minPrice.ifBlank { "-" }}-${filters.maxPrice.ifBlank { "-" }}")
     }
     if (filters.minYear.isNotBlank() || filters.maxYear.isNotBlank()) {
-        val from = filters.minYear.ifBlank { "-" }
-        val to = filters.maxYear.ifBlank { "-" }
-        labels += ActiveFilterItem(ActiveFilterKey.YEAR_RANGE, "${strings.minYear}/${strings.maxYear}: $from-$to")
+        labels += ActiveFilterItem(ActiveFilterKey.YEAR_RANGE, "${strings.minYear}/${strings.maxYear}: ${filters.minYear.ifBlank { "-" }}-${filters.maxYear.ifBlank { "-" }}")
     }
     if (filters.maxMileage.isNotBlank()) labels += ActiveFilterItem(ActiveFilterKey.MAX_MILEAGE, "${strings.maxMileage}: ${filters.maxMileage}")
-    if (!filters.fuelType.isNullOrBlank()) labels += ActiveFilterItem(ActiveFilterKey.FUEL, "${strings.fuelType}: ${fuelLabel(filters.fuelType, strings)}")
-    if (!filters.transmission.isNullOrBlank()) labels += ActiveFilterItem(ActiveFilterKey.TRANSMISSION, "${strings.transmission}: ${transmissionLabel(filters.transmission, strings)}")
-    if (!filters.bodyType.isNullOrBlank()) labels += ActiveFilterItem(ActiveFilterKey.BODY, "${strings.bodyType}: ${bodyTypeLabel(filters.bodyType, strings)}")
-    if (!filters.driveType.isNullOrBlank()) labels += ActiveFilterItem(ActiveFilterKey.DRIVE, "${strings.driveType}: ${driveTypeLabel(filters.driveType, strings)}")
-    if (!filters.carCondition.isNullOrBlank()) labels += ActiveFilterItem(ActiveFilterKey.CONDITION, "${strings.condition}: ${conditionLabel(filters.carCondition, strings)}")
+    if (!filters.fuelType.isNullOrBlank()) labels += ActiveFilterItem(ActiveFilterKey.FUEL, "${strings.fuelType}: ${filters.fuelType}")
+    if (!filters.transmission.isNullOrBlank()) labels += ActiveFilterItem(ActiveFilterKey.TRANSMISSION, "${strings.transmission}: ${filters.transmission}")
     if (filters.location.isNotBlank()) labels += ActiveFilterItem(ActiveFilterKey.LOCATION, "${strings.location}: ${filters.location.trim()}")
     return labels
 }
-
-
-
-
-
-
-

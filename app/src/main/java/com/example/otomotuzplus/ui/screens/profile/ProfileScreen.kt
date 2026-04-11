@@ -20,23 +20,32 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.otomotuzplus.models.CarAd
 import com.example.otomotuzplus.ui.models.AppStrings
 import com.google.firebase.auth.FirebaseAuth
 import java.util.Calendar
 
 @Composable
-fun ProfileScreen(onSettingsClick: () -> Unit, strings: AppStrings) {
+fun ProfileScreen(
+    onSettingsClick: () -> Unit,
+    strings: AppStrings,
+    allCarsFromDb: List<CarAd>,
+    onCarClick: (CarAd) -> Unit
+) {
     var selectedTab by rememberSaveable { mutableIntStateOf(0) }
     val tabs = listOf(strings.myListings, strings.history)
+
     val user = FirebaseAuth.getInstance().currentUser
-    val userEmail = user?.email ?: "user@example.com"
-    
+    val userEmail = user?.email ?: "Brak emaila"
+
     val creationTimestamp = user?.metadata?.creationTimestamp ?: 0L
     val memberYear = if (creationTimestamp > 0) {
         Calendar.getInstance().apply { timeInMillis = creationTimestamp }.get(Calendar.YEAR).toString()
     } else {
         "2026"
     }
+
+    val myCars = allCarsFromDb.filter { it.sellerId == userEmail }
 
     Column(
         modifier = Modifier
@@ -131,7 +140,7 @@ fun ProfileScreen(onSettingsClick: () -> Unit, strings: AppStrings) {
         Spacer(modifier = Modifier.height(16.dp))
 
         if (selectedTab == 0) {
-            MyListingsSection(strings)
+            MyListingsSection(strings = strings, myCars = myCars, onCarClick = onCarClick)
         } else {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Text(strings.historyEmpty, color = Color.Gray)
@@ -141,34 +150,30 @@ fun ProfileScreen(onSettingsClick: () -> Unit, strings: AppStrings) {
 }
 
 @Composable
-fun MyListingsSection(strings: AppStrings) {
-    val listings = listOf(
-        CarListing("120 000 PLN", "Mercedes-Benz C-Class", "2020, 45k km", strings.listingsStatus),
-        CarListing("120 000 PLN", "Mercedes-Benz C-Class", "2020, 45k km", strings.listingsStatus)
-    )
-
-    LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        items(listings) { listing ->
-            CarListingCard(listing)
+fun MyListingsSection(strings: AppStrings, myCars: List<CarAd>, onCarClick: (CarAd) -> Unit) {
+    if (myCars.isEmpty()) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Text(text = "Nie dodałeś jeszcze żadnych ogłoszeń.", color = Color.Gray)
+        }
+    } else {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            items(myCars) { car ->
+                CarListingCard(car = car, strings = strings, onClick = { onCarClick(car) })
+            }
         }
     }
 }
 
-data class CarListing(
-    val price: String,
-    val model: String,
-    val details: String,
-    val status: String
-)
-
 @Composable
-fun CarListingCard(listing: CarListing) {
+fun CarListingCard(car: CarAd, strings: AppStrings, onClick: () -> Unit) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() },
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
@@ -191,23 +196,23 @@ fun CarListingCard(listing: CarListing) {
 
             Column {
                 Text(
-                    text = listing.price,
+                    text = "${car.priceText} zł",
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
-                    text = listing.model,
+                    text = car.title,
                     fontSize = 16.sp,
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
-                    text = listing.details,
+                    text = "${car.year}, ${car.mileageText} km",
                     fontSize = 14.sp,
                     color = Color.Gray
                 )
                 Text(
-                    text = listing.status,
+                    text = strings.listingsStatus,
                     fontSize = 12.sp,
                     color = Color(0xFF10B981),
                     modifier = Modifier.padding(top = 4.dp)

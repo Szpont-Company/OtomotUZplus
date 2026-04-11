@@ -79,6 +79,23 @@ fun OtomotUZplusApp(
     var pendingSearchBrand by rememberSaveable { mutableStateOf<String?>(null) }
     var pendingSearchShowFilters by rememberSaveable { mutableStateOf<Boolean?>(null) }
     var favoriteCars by rememberSaveable { mutableStateOf(emptyList<String>()) }
+    var selectedCar by remember { mutableStateOf<com.example.otomotuzplus.models.CarAd?>(null) }
+    val repository = remember { com.example.otomotuzplus.data.FirebaseRepository() }
+    var allCarsFromDb by remember { mutableStateOf<List<com.example.otomotuzplus.models.CarAd>>(emptyList()) }
+
+    LaunchedEffect(Unit) {
+        repository.observeCars { updatedCars ->
+            allCarsFromDb = updatedCars
+        }
+    }
+
+    val toggleFavorite: (String) -> Unit = { key ->
+        favoriteCars = if (favoriteCars.contains(key)) {
+            favoriteCars - key
+        } else {
+            favoriteCars + key
+        }
+    }
 
     val strings = if (currentLanguage == "Polski") PolishStrings else EnglishStrings
 
@@ -91,8 +108,10 @@ fun OtomotUZplusApp(
         }
     }
 
-    BackHandler(enabled = showSettings || currentDestination != AppDestinations.HOME) {
-        if (showSettings) {
+    BackHandler(enabled = selectedCar != null || showSettings || currentDestination != AppDestinations.HOME) {
+        if (selectedCar != null) {
+            selectedCar = null
+        } else if (showSettings) {
             showSettings = false
         } else {
             currentDestination = AppDestinations.HOME
@@ -122,7 +141,13 @@ fun OtomotUZplusApp(
         navigationBarContentColor = Color.Gray
     )
 
-    if (showSettings) {
+    if (selectedCar != null) {
+        com.example.otomotuzplus.ui.screens.details.AdDetailScreen(
+            car = selectedCar!!,
+            onBackClick = { selectedCar = null }
+        )
+    }
+    else if (showSettings) {
         SettingsScreen(
             onBack = { showSettings = false },
             themeMode = themeMode,
@@ -160,6 +185,7 @@ fun OtomotUZplusApp(
                     when (currentDestination) {
                         AppDestinations.HOME -> HomeScreen(
                             strings = strings,
+                            carsFromDb = allCarsFromDb,
                             onNavigateToSearch = { openSearch() },
                             onNavigateToAdd = { currentDestination = AppDestinations.ADD },
                             onSearchSubmit = { submittedQuery ->
@@ -179,6 +205,9 @@ fun OtomotUZplusApp(
                                 } else {
                                     favoriteCars + key
                                 }
+                            },
+                            onCarClick = { clickedCar ->
+                                selectedCar = clickedCar
                             }
                         )
                         AppDestinations.SEARCH -> SearchScreen(
@@ -198,9 +227,12 @@ fun OtomotUZplusApp(
                                 pendingSearchQuery = null
                                 pendingSearchBrand = null
                                 pendingSearchShowFilters = null
+                            },
+                            allCarsFromDb = allCarsFromDb,
+                            onCarClick = { clickedCar ->
+                                selectedCar = clickedCar
                             }
                         )
-                        // NOWY KOD:
                         AppDestinations.ADD -> com.example.otomotuzplus.ui.screens.add.AddScreen(
                             onNavigateBack = {
                                 currentDestination = AppDestinations.HOME
@@ -209,17 +241,19 @@ fun OtomotUZplusApp(
                         AppDestinations.FAVORITES -> FavoritesScreen(
                             strings = strings,
                             favoriteCars = favoriteCars,
-                            onFavoriteToggle = { key ->
-                                favoriteCars = if (favoriteCars.contains(key)) {
-                                    favoriteCars - key
-                                } else {
-                                    favoriteCars + key
-                                }
+                            onFavoriteToggle = toggleFavorite,
+                            allCarsFromDb = allCarsFromDb,
+                            onCarClick = { clickedCar ->
+                                selectedCar = clickedCar
                             }
                         )
                         AppDestinations.PROFILE -> ProfileScreen(
                             onSettingsClick = { showSettings = true },
-                            strings = strings
+                            strings = strings,
+                            allCarsFromDb = allCarsFromDb,
+                            onCarClick = { clickedCar ->
+                                selectedCar = clickedCar
+                            }
                         )
                     }
                 }

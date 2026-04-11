@@ -17,7 +17,7 @@ class FirebaseRepository {
             gearboxText = "Manualna",
             engineCapacity = "1200 cm3",
             powerText = "100 KM",
-            imageUrl = "" // Na razie puste
+            imageUrl = ""
         )
 
         db.collection("listings")
@@ -47,5 +47,25 @@ class FirebaseRepository {
             .add(car)
             .addOnSuccessListener { onSuccess() }
             .addOnFailureListener { e: Exception -> onFailure(e) }
+    }
+
+    fun observeCars(onCarsChanged: (List<CarAd>) -> Unit) {
+        db.collection("listings")
+            .addSnapshotListener { snapshot, e ->
+                if (e != null || snapshot == null) {
+                    println("BŁĄD NASŁUCHU FIREBASE: ${e?.message}")
+                    return@addSnapshotListener
+                }
+                val cars = snapshot.documents.mapNotNull { doc ->
+                    try {
+                        val car = doc.toObject(CarAd::class.java)
+                        car?.copy(id = doc.id)
+                    } catch (ex: Exception) {
+                        println("BŁĄD PARSOWANIA AUTA: ${ex.message}")
+                        null
+                    }
+                }
+                onCarsChanged(cars)
+            }
     }
 }
