@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -28,6 +29,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.otomotuzplus.ui.theme.BrandGold
 import com.example.otomotuzplus.ui.theme.Slate400
+import coil.compose.AsyncImage
+import androidx.compose.ui.layout.ContentScale
 
 data class ListingCardData(
     val title: String,
@@ -39,7 +42,8 @@ data class ListingCardData(
     val locationText: String,
     val priceText: String,
     val isFavorite: Boolean,
-    val onFavoriteClick: () -> Unit
+    val onFavoriteClick: () -> Unit,
+    val coverImageUrl: String? = null
 )
 
 @Composable
@@ -71,6 +75,14 @@ fun ListingCard(
                     .height(155.dp)
                     .background(MaterialTheme.colorScheme.surfaceVariant)
             ) {
+                if (!item.coverImageUrl.isNullOrEmpty()) {
+                    AsyncImage(
+                        model = item.coverImageUrl,
+                        contentDescription = "Okładka ogłoszenia",
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                }
                 Surface(
                     shape = androidx.compose.foundation.shape.RoundedCornerShape(14.dp),
                     color = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),

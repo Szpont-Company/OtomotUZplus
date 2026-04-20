@@ -24,6 +24,8 @@ import com.example.otomotuzplus.models.CarAd
 import com.example.otomotuzplus.ui.models.AppStrings
 import com.google.firebase.auth.FirebaseAuth
 import java.util.Calendar
+import coil.compose.AsyncImage
+import androidx.compose.ui.layout.ContentScale
 
 @Composable
 fun ProfileScreen(
@@ -194,10 +196,24 @@ fun CarListingCard(car: CarAd, strings: AppStrings, onClick: () -> Unit) {
                 modifier = Modifier
                     .size(100.dp)
                     .clip(RoundedCornerShape(12.dp))
-                    .background(MaterialTheme.colorScheme.background),
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(Icons.Default.DirectionsCar, contentDescription = null, tint = Color.Gray)
+                if (car.imageUrls.isNotEmpty()) {
+                    AsyncImage(
+                        model = car.imageUrls.first(),
+                        contentDescription = "Miniatura ogłoszenia",
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    Icon(
+                        imageVector = Icons.Default.DirectionsCar,
+                        contentDescription = null,
+                        modifier = Modifier.size(40.dp),
+                        tint = Color.Gray
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.width(16.dp))

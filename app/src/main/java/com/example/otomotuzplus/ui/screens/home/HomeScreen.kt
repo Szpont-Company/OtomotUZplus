@@ -103,6 +103,7 @@ fun HomeScreen(
                 driveTypeText = listing.engineCapacity.withSuffix(strings.unitCm3),
                 locationText = listing.locationText,
                 priceText = listing.priceText.withSuffix(strings.unitCurrency),
+                coverImageUrl = listing.imageUrls.firstOrNull(),
                 isFavorite = false,
                 onFavoriteClick = {}
             )

@@ -300,6 +300,7 @@ fun SearchScreen(
                         locationText = car.locationText,
                         priceText = car.priceText.withSuffix(strings.unitCurrency),
                         isFavorite = favoriteCars.contains(carKey),
+                        coverImageUrl = car.imageUrls.firstOrNull(),
                         onFavoriteClick = { onFavoriteToggle(carKey) }
                     ),
                     modifier = Modifier

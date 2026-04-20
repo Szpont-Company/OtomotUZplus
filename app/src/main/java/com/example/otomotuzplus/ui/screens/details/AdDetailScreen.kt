@@ -5,6 +5,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -16,6 +18,8 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.layout.ContentScale
+import coil.compose.AsyncImage
 import com.example.otomotuzplus.models.CarAd
 import com.example.otomotuzplus.ui.models.AppStrings
 import com.example.otomotuzplus.ui.models.localizeFuelType
@@ -58,14 +62,32 @@ fun AdDetailScreen(
             colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
         )
 
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(250.dp)
-                .background(MaterialTheme.colorScheme.surfaceVariant),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(Icons.Default.DirectionsCar, contentDescription = null, modifier = Modifier.size(64.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        if (car.imageUrls.isNotEmpty()) {
+            val pagerState = rememberPagerState(pageCount = { car.imageUrls.size })
+
+            HorizontalPager(
+                state = pagerState,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(250.dp)
+            ) { page ->
+                AsyncImage(
+                    model = car.imageUrls[page],
+                    contentDescription = "Zdjęcie samochodu",
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
+                )
+            }
+        } else {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(250.dp)
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(Icons.Default.DirectionsCar, contentDescription = null, modifier = Modifier.size(64.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
         }
 
         Column(

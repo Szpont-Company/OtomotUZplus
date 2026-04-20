@@ -11,6 +11,6 @@ data class CarAd(
     val gearboxText: String = "",
     val engineCapacity: String = "",
     val powerText: String = "",
-    val imageUrl: String = "",
+    val imageUrls: List<String> = emptyList(),
     val sellerId: String = ""
 )
