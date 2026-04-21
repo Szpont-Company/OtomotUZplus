@@ -20,6 +20,8 @@ import com.example.otomotuzplus.data.FirebaseRepository
 import com.example.otomotuzplus.models.CarAd
 import com.example.otomotuzplus.ui.models.AppStrings
 import com.example.otomotuzplus.ui.theme.BrandGold
+import java.io.File
+import androidx.core.content.FileProvider
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -50,7 +52,15 @@ fun AddScreen(
     var powerText by remember { mutableStateOf("") }
     var isUploading by remember { mutableStateOf(false) }
     var selectedImageUris by remember { mutableStateOf<List<Uri>>(emptyList()) }
-    var showPhotoSourceDialog by remember { mutableStateOf(false) } // Pokazuje wybór Aparat/Galeria
+    var showPhotoSourceDialog by remember { mutableStateOf(false) }
+    var tempImageUri by remember { mutableStateOf<Uri?>(null) }
+    val cameraLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicture()
+    ) { success ->
+        if (success && tempImageUri != null) {
+            selectedImageUris = selectedImageUris + tempImageUri!!
+        }
+    }
     val multiplePhotoPickerLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
         contract = androidx.activity.result.contract.ActivityResultContracts.PickMultipleVisualMedia(maxItems = 5)
     ) { uris ->
@@ -365,6 +375,9 @@ fun AddScreen(
             dismissButton = {
                 TextButton(onClick = {
                     showPhotoSourceDialog = false
+                    val uri = createTempImageUri(context)
+                    tempImageUri = uri
+                    cameraLauncher.launch(uri)
                 }) {
                     Text("Aparat")
                 }
@@ -384,3 +397,14 @@ private fun customTextFieldColors() = OutlinedTextFieldDefaults.colors(
     unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
     cursorColor = BrandGold
 )
+fun createTempImageUri(context: android.content.Context): Uri {
+    val tempFile = File.createTempFile("temp_car_image_", ".jpg", context.externalCacheDir).apply {
+        createNewFile()
+        deleteOnExit()
+    }
+    return FileProvider.getUriForFile(
+        context,
+        "com.example.otomotuzplus.provider",
+        tempFile
+    )
+}

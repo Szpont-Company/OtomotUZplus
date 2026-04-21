@@ -117,7 +117,7 @@ fun HomeScreen(
     ) {
         item {
             Spacer(modifier = Modifier.height(8.dp))
-            ScreenHeader(title = "OtoMotUZ++") {
+            ScreenHeader(title = "OtomotUZ++") {
                 Surface(
                     shape = RoundedCornerShape(12.dp),
                     color = MaterialTheme.colorScheme.surface,
