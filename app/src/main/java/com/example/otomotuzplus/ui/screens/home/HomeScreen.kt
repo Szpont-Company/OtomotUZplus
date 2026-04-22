@@ -2,6 +2,7 @@ package com.example.otomotuzplus.ui.screens.home
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.layout.Arrangement
@@ -19,6 +20,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -49,6 +51,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
@@ -58,6 +61,8 @@ import com.example.otomotuzplus.ui.components.ScreenHeader
 import com.example.otomotuzplus.ui.components.ListingCard
 import com.example.otomotuzplus.ui.components.ListingCardData
 import com.example.otomotuzplus.ui.models.AppStrings
+import com.example.otomotuzplus.ui.models.localizeFuelType
+import com.example.otomotuzplus.ui.models.localizeGearboxType
 import com.example.otomotuzplus.ui.models.sampleListings
 import com.example.otomotuzplus.ui.theme.BrandGold
 import com.example.otomotuzplus.ui.theme.DarkSlate800
@@ -67,6 +72,7 @@ import com.example.otomotuzplus.ui.theme.Slate400
 @Composable
 fun HomeScreen(
     strings: AppStrings,
+    carsFromDb: List<com.example.otomotuzplus.models.CarAd>,
     modifier: Modifier = Modifier,
     onNavigateToSearch: () -> Unit = {},
     onNavigateToAdd: () -> Unit = {},
@@ -75,44 +81,29 @@ fun HomeScreen(
     onSeeAllClick: () -> Unit = {},
     onNotificationsClick: () -> Unit = {},
     favoriteCars: List<String> = emptyList(),
-    onFavoriteToggle: (String) -> Unit = {}
+    onFavoriteToggle: (String) -> Unit = {},
+    onCarClick: (com.example.otomotuzplus.models.CarAd) -> Unit = {}
 ) {
     var query by rememberSaveable { mutableStateOf("") }
+    val context = androidx.compose.ui.platform.LocalContext.current
+
 
     val brands = remember {
         listOf("Porsche", "BMW", "Mercedes", "Audi", "VW")
     }
 
-    val arrivals = remember(strings) {
-        sampleListings().map { listing ->
+    val arrivals = remember(carsFromDb, strings) {
+        carsFromDb.map { listing ->
             ListingCardData(
-                title = listing.name,
-                year = listing.year.toString(),
-                mileageText = "${listing.mileageKm / 1000}k km",
-                fuelText = when (listing.fuelType) {
-                    "petrol" -> strings.fuelPetrol
-                    "diesel" -> strings.fuelDiesel
-                    "hybrid" -> strings.fuelHybrid
-                    "electric" -> strings.fuelElectric
-                    else -> listing.fuelType
-                },
-                bodyTypeText = when (listing.bodyType) {
-                    "sedan" -> "Sedan"
-                    "suv" -> "SUV"
-                    "coupe" -> "Coupe"
-                    "hatchback" -> "Hatchback"
-                    "wagon" -> "Wagon"
-                    else -> listing.bodyType
-                },
-                driveTypeText = when (listing.driveType) {
-                    "fwd" -> "FWD"
-                    "rwd" -> "RWD"
-                    "awd" -> "AWD"
-                    "4x4" -> "4x4"
-                    else -> listing.driveType
-                },
-                locationText = listing.location,
-                priceText = "${listing.price} zl",
+                title = listing.title,
+                year = listing.year,
+                mileageText = listing.mileageText.withSuffix(strings.unitKm),
+                fuelText = localizeFuelType(listing.fuelText, strings),
+                bodyTypeText = localizeGearboxType(listing.gearboxText, strings),
+                driveTypeText = listing.engineCapacity.withSuffix(strings.unitCm3),
+                locationText = listing.locationText,
+                priceText = listing.priceText.withSuffix(strings.unitCurrency),
+                coverImageUrl = listing.imageUrls.firstOrNull(),
                 isFavorite = false,
                 onFavoriteClick = {}
             )
@@ -126,7 +117,7 @@ fun HomeScreen(
     ) {
         item {
             Spacer(modifier = Modifier.height(8.dp))
-            ScreenHeader(title = "OtoMotUZ++") {
+            ScreenHeader(title = "OtomotUZ++") {
                 Surface(
                     shape = RoundedCornerShape(12.dp),
                     color = MaterialTheme.colorScheme.surface,
@@ -207,13 +198,21 @@ fun HomeScreen(
             SectionHeader(title = strings.freshArrivals, actionLabel = null)
         }
 
-        items(arrivals) { car ->
+        itemsIndexed(arrivals) { index, carData ->
+            val originalCarFromDb = carsFromDb[index]
+
+            val carKey = "${originalCarFromDb.id}|${originalCarFromDb.title}"
+
             ListingCard(
-                item = car.copy(
-                    isFavorite = favoriteCars.contains(car.title + "|" + car.year),
-                    onFavoriteClick = { onFavoriteToggle(car.title + "|" + car.year) }
+                item = carData.copy(
+                    isFavorite = favoriteCars.contains(carKey),
+                    onFavoriteClick = { onFavoriteToggle(carKey) }
                 ),
-                modifier = Modifier.padding(horizontal = 16.dp)
+                modifier = Modifier
+                    .padding(horizontal = 16.dp)
+                    .clickable {
+                        onCarClick(originalCarFromDb)
+                    }
             )
         }
 
@@ -272,15 +271,21 @@ private fun SearchBar(
     placeholder: String,
     onSubmit: (String) -> Unit
 ) {
+    val config = LocalConfiguration.current
+    val screenWidth = config.screenWidthDp
+    val placeholderSize = if (screenWidth < 360) 12.sp else 14.sp
+    val textSize = if (screenWidth < 360) 13.sp else 15.sp
+
     OutlinedTextField(
         value = query,
         onValueChange = onQueryChange,
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp),
-        placeholder = { Text(text = placeholder, color = Slate400) },
+        placeholder = { Text(text = placeholder, color = Slate400, fontSize = placeholderSize) },
         leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
         singleLine = true,
+        textStyle = androidx.compose.material3.LocalTextStyle.current.copy(fontSize = textSize),
         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
         keyboardActions = KeyboardActions(
             onSearch = { onSubmit(query.trim()) }
@@ -310,40 +315,105 @@ private fun ActionTile(
     foreground: Color,
     onClick: () -> Unit = {}
 ) {
+    val config = LocalConfiguration.current
+    val screenWidth = config.screenWidthDp
+
+    val tileHeight: androidx.compose.ui.unit.Dp
+    val padding: androidx.compose.ui.unit.Dp
+    val titleSize: androidx.compose.ui.unit.TextUnit
+    val subtitleSize: androidx.compose.ui.unit.TextUnit
+    val spacingIconToTitle: androidx.compose.ui.unit.Dp
+    val spacingTitleToSubtitle: androidx.compose.ui.unit.Dp
+
+    when {
+        screenWidth < 360 -> {
+            // Very small screens
+            tileHeight = 85.dp
+            padding = 8.dp
+            titleSize = 10.sp
+            subtitleSize = 14.sp
+            spacingIconToTitle = 4.dp
+            spacingTitleToSubtitle = 2.dp
+        }
+        screenWidth < 380 -> {
+            // Small screens (Realme RMX2202 ~360-380dp)
+            tileHeight = 100.dp
+            padding = 10.dp
+            titleSize = 11.sp
+            subtitleSize = 15.sp
+            spacingIconToTitle = 6.dp
+            spacingTitleToSubtitle = 2.dp
+        }
+        screenWidth < 420 -> {
+            // Medium-small (Nothing Phone 2 ~380-410dp)
+            tileHeight = 125.dp
+            padding = 12.dp
+            titleSize = 13.sp
+            subtitleSize = 18.sp
+            spacingIconToTitle = 8.dp
+            spacingTitleToSubtitle = 2.dp
+        }
+        screenWidth < 600 -> {
+            // Medium screens
+            tileHeight = 120.dp
+            padding = 11.dp
+            titleSize = 14.sp
+            subtitleSize = 19.sp
+            spacingIconToTitle = 8.dp
+            spacingTitleToSubtitle = 2.dp
+        }
+        else -> {
+            // Large screens (tablets)
+            tileHeight = 150.dp
+            padding = 14.dp
+            titleSize = 13.sp
+            subtitleSize = 18.sp
+            spacingIconToTitle = 10.dp
+            spacingTitleToSubtitle = 3.dp
+        }
+    }
+
     Card(
         onClick = onClick,
-        modifier = modifier.heightIn(min = 132.dp),
+        modifier = modifier.heightIn(min = tileHeight),
         shape = RoundedCornerShape(22.dp),
         colors = CardDefaults.cardColors(containerColor = background),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
-        Box(modifier = Modifier.fillMaxSize().padding(14.dp)) {
-            Column(modifier = Modifier.align(Alignment.BottomStart)) {
-                Surface(
-                    shape = CircleShape,
-                    color = foreground.copy(alpha = 0.18f)
-                ) {
-                    Icon(
-                        imageVector = icon,
-                        contentDescription = null,
-                        tint = foreground,
-                        modifier = Modifier.padding(6.dp)
-                    )
-                }
-                Spacer(modifier = Modifier.height(14.dp))
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding),
+            verticalArrangement = Arrangement.Top,
+            horizontalAlignment = Alignment.Start
+        ) {
+            Surface(
+                shape = CircleShape,
+                color = foreground.copy(alpha = 0.18f)
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = foreground,
+                    modifier = Modifier.padding(6.dp)
+                )
+            }
+            Spacer(modifier = Modifier.height(spacingIconToTitle))
+            Column {
                 Text(
                     text = title,
                     color = foreground.copy(alpha = 0.72f),
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.SemiBold
+                    fontSize = titleSize,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.fillMaxWidth()
                 )
+                Spacer(modifier = Modifier.height(spacingTitleToSubtitle))
                 Text(
                     text = subtitle,
                     color = foreground,
-                    fontSize = 16.sp,
+                    fontSize = subtitleSize,
                     fontWeight = FontWeight.Bold,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
+                    modifier = Modifier.fillMaxWidth()
                 )
             }
         }
@@ -379,6 +449,11 @@ private fun SectionHeader(
             }
         }
     }
+}
+
+private fun String.withSuffix(suffix: String): String {
+    val value = trim()
+    return if (value.isEmpty()) "" else "$value $suffix"
 }
 
 
