@@ -91,6 +91,7 @@ fun FavoritesScreen(
                         driveTypeText = car.engineCapacity.withSuffix(strings.unitCm3),
                         locationText = car.locationText,
                         priceText = car.priceText.withSuffix(strings.unitCurrency),
+                        coverImageUrl = car.imageUrls.firstOrNull(),
                         isFavorite = true,
                         onFavoriteClick = { onFavoriteToggle(carKey) }
                     ),

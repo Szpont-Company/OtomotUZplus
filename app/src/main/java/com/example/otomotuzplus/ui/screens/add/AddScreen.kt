@@ -20,6 +20,18 @@ import com.example.otomotuzplus.data.FirebaseRepository
 import com.example.otomotuzplus.models.CarAd
 import com.example.otomotuzplus.ui.models.AppStrings
 import com.example.otomotuzplus.ui.theme.BrandGold
+import java.io.File
+import androidx.core.content.FileProvider
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.PhotoCamera
+import androidx.compose.ui.draw.clip
+import coil.compose.AsyncImage
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -39,6 +51,23 @@ fun AddScreen(
     var engineCapacity by remember { mutableStateOf("") }
     var powerText by remember { mutableStateOf("") }
     var isUploading by remember { mutableStateOf(false) }
+    var selectedImageUris by remember { mutableStateOf<List<Uri>>(emptyList()) }
+    var showPhotoSourceDialog by remember { mutableStateOf(false) }
+    var tempImageUri by remember { mutableStateOf<Uri?>(null) }
+    val cameraLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicture()
+    ) { success ->
+        if (success && tempImageUri != null) {
+            selectedImageUris = selectedImageUris + tempImageUri!!
+        }
+    }
+    val multiplePhotoPickerLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+        contract = androidx.activity.result.contract.ActivityResultContracts.PickMultipleVisualMedia(maxItems = 5)
+    ) { uris ->
+        if (uris.isNotEmpty()) {
+            selectedImageUris = selectedImageUris + uris
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -221,36 +250,92 @@ fun AddScreen(
         Spacer(modifier = Modifier.height(16.dp))
 
         Button(
+            onClick = { showPhotoSourceDialog = true },
+            modifier = Modifier.fillMaxWidth().height(50.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            Icon(
+                Icons.Default.PhotoCamera,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurface
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(strings.addPhotos, color = MaterialTheme.colorScheme.onSurface)
+        }
+
+        if (selectedImageUris.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(12.dp))
+            LazyRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                contentPadding = PaddingValues(horizontal = 4.dp)
+            ) {
+                items(selectedImageUris.size) { index ->
+                    val uri = selectedImageUris[index]
+                    Box {
+                        AsyncImage(
+                            model = uri,
+                            contentDescription = strings.selectedPhotoContentDescription,
+                            modifier = Modifier
+                                .size(80.dp)
+                                .clip(RoundedCornerShape(8.dp)),
+                            contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                        )
+                        IconButton(
+                            onClick = { selectedImageUris = selectedImageUris - uri },
+                            modifier = Modifier
+                                .align(androidx.compose.ui.Alignment.TopEnd)
+                                .size(24.dp)
+                                .background(Color.Black.copy(alpha = 0.5f), androidx.compose.foundation.shape.CircleShape)
+                        ) {
+                            Icon(
+                                Icons.Default.Close,
+                                contentDescription = strings.removePhotoContentDescription,
+                                tint = Color.White,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                    }
+                }
+            }
+        }
+        Spacer(modifier = Modifier.height(24.dp))
+
+        Button(
             onClick = {
                 if (title.isNotBlank() && priceText.isNotBlank()) {
                     isUploading = true
-                    val currentUserEmail = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.email ?: strings.noEmail
-                    val newCar = CarAd(
-                        title = title,
-                        priceText = priceText,
-                        locationText = locationText,
-                        year = year,
-                        mileageText = mileageText,
-                        fuelText = fuelText,
-                        gearboxText = gearboxText,
-                        engineCapacity = engineCapacity,
-                        powerText = powerText,
-                        imageUrl = "",
-                        sellerId = currentUserEmail
-                    )
 
-                    repository.addCar(
-                        car = newCar,
-                        onSuccess = {
-                            isUploading = false
-                            Toast.makeText(context, strings.addListingSuccess, Toast.LENGTH_SHORT).show()
-                            onNavigateBack()
-                        },
-                        onFailure = { e ->
-                            isUploading = false
-                            Toast.makeText(context, strings.addListingError.format(e.message ?: ""), Toast.LENGTH_LONG).show()
-                        }
-                    )
+                    repository.uploadImages(selectedImageUris) { uploadedUrls ->
+
+                        val currentUserEmail = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.email ?: strings.noEmail
+                        val newCar = CarAd(
+                            title = title,
+                            priceText = priceText,
+                            locationText = locationText,
+                            year = year,
+                            mileageText = mileageText,
+                            fuelText = fuelText,
+                            gearboxText = gearboxText,
+                            engineCapacity = engineCapacity,
+                            powerText = powerText,
+                            imageUrls = uploadedUrls,
+                            sellerId = currentUserEmail
+                        )
+
+                        repository.addCar(
+                            car = newCar,
+                            onSuccess = {
+                                isUploading = false
+                                Toast.makeText(context, strings.addListingSuccess, Toast.LENGTH_SHORT).show()
+                                onNavigateBack()
+                            },
+                            onFailure = { e ->
+                                isUploading = false
+                                Toast.makeText(context, strings.addListingError.format(e.message ?: ""), Toast.LENGTH_LONG).show()
+                            }
+                        )
+                    }
                 } else {
                     Toast.makeText(context, strings.addListingRequiredFields, Toast.LENGTH_SHORT).show()
                 }
@@ -271,6 +356,34 @@ fun AddScreen(
         }
         Spacer(modifier = Modifier.height(32.dp))
     }
+
+    if (showPhotoSourceDialog) {
+        AlertDialog(
+            onDismissRequest = { showPhotoSourceDialog = false },
+            title = { Text(strings.photoSourceTitle) },
+            text = { Text(strings.photoSourceMessage) },
+            confirmButton = {
+                TextButton(onClick = {
+                    showPhotoSourceDialog = false
+                    multiplePhotoPickerLauncher.launch(
+                        androidx.activity.result.PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                    )
+                }) {
+                    Text(strings.photoSourceGallery)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    showPhotoSourceDialog = false
+                    val uri = createTempImageUri(context)
+                    tempImageUri = uri
+                    cameraLauncher.launch(uri)
+                }) {
+                    Text(strings.photoSourceCamera)
+                }
+            }
+        )
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -284,3 +397,14 @@ private fun customTextFieldColors() = OutlinedTextFieldDefaults.colors(
     unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
     cursorColor = BrandGold
 )
+fun createTempImageUri(context: android.content.Context): Uri {
+    val tempFile = File.createTempFile("temp_car_image_", ".jpg", context.externalCacheDir).apply {
+        createNewFile()
+        deleteOnExit()
+    }
+    return FileProvider.getUriForFile(
+        context,
+        "com.example.otomotuzplus.provider",
+        tempFile
+    )
+}

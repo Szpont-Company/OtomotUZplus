@@ -2,9 +2,13 @@ package com.example.otomotuzplus.data
 
 import com.example.otomotuzplus.models.CarAd
 import com.google.firebase.firestore.FirebaseFirestore
+import android.net.Uri
+import com.google.firebase.storage.FirebaseStorage
+import java.util.UUID
 
 class FirebaseRepository {
     private val db = FirebaseFirestore.getInstance()
+    private val storage = FirebaseStorage.getInstance()
 
     fun uploadTestCar(onSuccess: () -> Unit, onFailure: (Exception) -> Unit) {
         val testCar = CarAd(
@@ -17,7 +21,7 @@ class FirebaseRepository {
             gearboxText = "Manualna",
             engineCapacity = "1200 cm3",
             powerText = "100 KM",
-            imageUrl = ""
+            imageUrls = emptyList()
         )
 
         db.collection("listings")
@@ -67,5 +71,37 @@ class FirebaseRepository {
                 }
                 onCarsChanged(cars)
             }
+    }
+
+    fun uploadImages(uris: List<Uri>, onComplete: (List<String>) -> Unit) {
+        if (uris.isEmpty()) {
+            onComplete(emptyList())
+            return
+        }
+
+        val uploadedUrls = mutableListOf<String>()
+        var uploadCount = 0
+
+        for (uri in uris) {
+            val fileName = UUID.randomUUID().toString()
+            val storageRef = storage.reference.child("car_images/$fileName")
+
+            storageRef.putFile(uri).continueWithTask { task ->
+                if (!task.isSuccessful) {
+                    task.exception?.let { throw it }
+                }
+                storageRef.downloadUrl
+            }.addOnCompleteListener { task ->
+                if (task.isSuccessful) {
+                    val downloadUri = task.result
+                    uploadedUrls.add(downloadUri.toString())
+                }
+
+                uploadCount++
+                if (uploadCount == uris.size) {
+                    onComplete(uploadedUrls)
+                }
+            }
+        }
     }
 }

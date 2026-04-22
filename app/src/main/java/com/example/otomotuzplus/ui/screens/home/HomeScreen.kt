@@ -103,6 +103,7 @@ fun HomeScreen(
                 driveTypeText = listing.engineCapacity.withSuffix(strings.unitCm3),
                 locationText = listing.locationText,
                 priceText = listing.priceText.withSuffix(strings.unitCurrency),
+                coverImageUrl = listing.imageUrls.firstOrNull(),
                 isFavorite = false,
                 onFavoriteClick = {}
             )
@@ -116,7 +117,7 @@ fun HomeScreen(
     ) {
         item {
             Spacer(modifier = Modifier.height(8.dp))
-            ScreenHeader(title = "OtoMotUZ++") {
+            ScreenHeader(title = "OtomotUZ++") {
                 Surface(
                     shape = RoundedCornerShape(12.dp),
                     color = MaterialTheme.colorScheme.surface,
