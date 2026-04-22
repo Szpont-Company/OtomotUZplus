@@ -261,7 +261,7 @@ fun AddScreen(
                 tint = MaterialTheme.colorScheme.onSurface
             )
             Spacer(modifier = Modifier.width(8.dp))
-            Text("Dodaj zdjęcia", color = MaterialTheme.colorScheme.onSurface)
+            Text(strings.addPhotos, color = MaterialTheme.colorScheme.onSurface)
         }
 
         if (selectedImageUris.isNotEmpty()) {
@@ -275,7 +275,7 @@ fun AddScreen(
                     Box {
                         AsyncImage(
                             model = uri,
-                            contentDescription = "Wybrane zdjęcie",
+                            contentDescription = strings.selectedPhotoContentDescription,
                             modifier = Modifier
                                 .size(80.dp)
                                 .clip(RoundedCornerShape(8.dp)),
@@ -290,7 +290,7 @@ fun AddScreen(
                         ) {
                             Icon(
                                 Icons.Default.Close,
-                                contentDescription = "Usuń",
+                                contentDescription = strings.removePhotoContentDescription,
                                 tint = Color.White,
                                 modifier = Modifier.size(16.dp)
                             )
@@ -360,8 +360,8 @@ fun AddScreen(
     if (showPhotoSourceDialog) {
         AlertDialog(
             onDismissRequest = { showPhotoSourceDialog = false },
-            title = { Text("Wybierz źródło zdjęcia") },
-            text = { Text("Skąd chcesz dodać zdjęcia do swojego ogłoszenia?") },
+            title = { Text(strings.photoSourceTitle) },
+            text = { Text(strings.photoSourceMessage) },
             confirmButton = {
                 TextButton(onClick = {
                     showPhotoSourceDialog = false
@@ -369,7 +369,7 @@ fun AddScreen(
                         androidx.activity.result.PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
                     )
                 }) {
-                    Text("Galeria")
+                    Text(strings.photoSourceGallery)
                 }
             },
             dismissButton = {
@@ -379,7 +379,7 @@ fun AddScreen(
                     tempImageUri = uri
                     cameraLauncher.launch(uri)
                 }) {
-                    Text("Aparat")
+                    Text(strings.photoSourceCamera)
                 }
             }
         )
