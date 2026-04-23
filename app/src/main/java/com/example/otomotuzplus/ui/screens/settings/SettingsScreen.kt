@@ -4,6 +4,7 @@ import android.content.Intent
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Palette
@@ -32,6 +33,13 @@ fun SettingsScreen(
     val context = LocalContext.current
     var showLanguageDialog by remember { mutableStateOf(false) }
     var showThemeDialog by remember { mutableStateOf(false) }
+    val openNotificationSettings = {
+        val intent = Intent().apply {
+            action = android.provider.Settings.ACTION_APP_NOTIFICATION_SETTINGS
+            putExtra(android.provider.Settings.EXTRA_APP_PACKAGE, context.packageName)
+        }
+        context.startActivity(intent)
+    }
 
     if (showLanguageDialog) {
         AlertDialog(
@@ -138,7 +146,19 @@ fun SettingsScreen(
                 onClick = { showLanguageDialog = true }
             )
 
-            SettingsClickItem(strings.notifications, Icons.Default.Notifications, {})
+            SettingsClickItem(
+                title = strings.notifications,
+                icon = Icons.Default.Notifications,
+                onClick = { openNotificationSettings() }
+            )
+
+            SettingsClickItem(
+                title = "Wyślij testowe powiadomienie",
+                icon = Icons.Default.BugReport,
+                onClick = {
+                    com.example.otomotuzplus.utils.NotificationHelper.sendTestNotification(context, strings)
+                }
+            )
 
             Spacer(modifier = Modifier.weight(1f))
 

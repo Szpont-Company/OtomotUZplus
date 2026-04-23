@@ -104,7 +104,13 @@ data class AppStrings(
     val addListingError: String,
     val addListingRequiredFields: String,
     val uploading: String,
-    val noEmail: String
+    val noEmail: String,
+    val notificationsSettingsDescription: String,
+    val dealNotification: String,
+    val dealNotificationDescription: String,
+    val enable: String,
+    val maybeLater: String,
+    val newOffers: String
 )
 
 val PolishStrings = AppStrings(
@@ -211,7 +217,13 @@ val PolishStrings = AppStrings(
     addListingError = "Błąd: %s",
     addListingRequiredFields = "Podaj przynajmniej markę i cenę!",
     uploading = "Wysyłanie...",
-    noEmail = "brak emaila"
+    noEmail = "brak emaila",
+    notificationsSettingsDescription = "Powiadomienia z ogłoszeniami, które mogą cię zainteresować",
+    dealNotification = "Powiadomienie o okazjach",
+    dealNotificationDescription = "Ciągle przegapiasz tanie Passaty? Włącz powiadomienia, aby otrzymywać info o nowych autach i promocjach!",
+    enable = "Włącz",
+    maybeLater = "Może później",
+    newOffers = "Nowe oferty"
 )
 
 val EnglishStrings = AppStrings(
@@ -318,5 +330,11 @@ val EnglishStrings = AppStrings(
     addListingError = "Error: %s",
     addListingRequiredFields = "Provide at least brand and price!",
     uploading = "Uploading...",
-    noEmail = "no email"
+    noEmail = "no email",
+    notificationsSettingsDescription = "Notifications with listings that might interest you",
+    dealNotification = "Deal notification",
+    dealNotificationDescription = "Missing out on the best deals? Turn on the notifications!",
+    enable = "Enable",
+    maybeLater = "Maybe later",
+    newOffers = "New offers"
 )
