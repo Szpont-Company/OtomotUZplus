@@ -42,16 +42,31 @@ import androidx.core.content.ContextCompat
 import android.os.Build
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import com.example.otomotuzplus.utils.NotificationHelper
 
 class MainActivity : ComponentActivity() {
+    private val requestPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted: Boolean -> hasNotificationPermission = isGranted }
+    private var hasNotificationPermission by mutableStateOf(false)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        createNotificationChannel()
         val prefManager = PreferenceManager(this)
+        val lang = prefManager.getLanguage()
+        val strings = if (lang == "Polski") PolishStrings else EnglishStrings
+
+        hasNotificationPermission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+        } else {
+            true
+        }
+
+        NotificationHelper.createNotificationChannel(this, strings)
         enableEdgeToEdge()
         setContent {
             var themeMode by remember { mutableStateOf(prefManager.getThemeMode()) }
             var currentLanguage by remember { mutableStateOf(prefManager.getLanguage()) }
+            var notificationsRefused by remember { mutableStateOf(prefManager.wasNotificationsRefused()) }
 
             val darkTheme = when (themeMode) {
                 ThemeMode.LIGHT -> false
@@ -62,20 +77,26 @@ class MainActivity : ComponentActivity() {
             OtomotUZplusTheme(darkTheme = darkTheme) {
                 OtomotUZplusApp(
                     themeMode = themeMode,
-                    onThemeChange = { 
+                    onThemeChange = {
                         themeMode = it
                         prefManager.setThemeMode(it)
                     },
                     currentLanguage = currentLanguage,
-                    onLanguageChange = { 
+                    onLanguageChange = {
                         currentLanguage = it
                         prefManager.setLanguage(it)
+                    },
+                    notificationsRefused = notificationsRefused,
+                    onSetNotificationsRefused = { refused ->
+                        notificationsRefused = refused
+                        prefManager.setNotificationsRefused(refused)
                     },
                     onRequestNotificationPermission = {
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                             requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
                         }
-                    }
+                    },
+                    notificationsPermissionGranted = hasNotificationPermission
                 )
             }
         }
@@ -109,8 +130,16 @@ fun OtomotUZplusApp(
     onThemeChange: (ThemeMode) -> Unit,
     currentLanguage: String,
     onLanguageChange: (String) -> Unit,
-    onRequestNotificationPermission: () -> Unit
+    notificationsRefused: Boolean,
+    onSetNotificationsRefused: (Boolean) -> Unit,
+    onRequestNotificationPermission: () -> Unit,
+    notificationsPermissionGranted: Boolean
 ) {
+    val strings = if (currentLanguage == "Polski") PolishStrings else EnglishStrings
+    val context = LocalContext.current
+    val repository = remember { com.example.otomotuzplus.data.FirebaseRepository() }
+    val shouldShowDialog = !notificationsPermissionGranted && !notificationsRefused &&
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
     var currentDestination by rememberSaveable { mutableStateOf(AppDestinations.HOME) }
     var showSettings by rememberSaveable { mutableStateOf(false) }
     var pendingSearchQuery by rememberSaveable { mutableStateOf<String?>(null) }
@@ -118,7 +147,6 @@ fun OtomotUZplusApp(
     var pendingSearchShowFilters by rememberSaveable { mutableStateOf<Boolean?>(null) }
     var favoriteCars by rememberSaveable { mutableStateOf(emptyList<String>()) }
     var selectedCar by remember { mutableStateOf<com.example.otomotuzplus.models.CarAd?>(null) }
-    val repository = remember { com.example.otomotuzplus.data.FirebaseRepository() }
     var allCarsFromDb by remember { mutableStateOf<List<com.example.otomotuzplus.models.CarAd>>(emptyList()) }
 
     LaunchedEffect(Unit) {
@@ -135,9 +163,6 @@ fun OtomotUZplusApp(
         }
     }
     var showRationaleDialog by rememberSaveable { mutableStateOf(false) }
-
-    val strings = if (currentLanguage == "Polski") PolishStrings else EnglishStrings
-    val context = LocalContext.current
 
     fun openSearch(query: String? = null, brand: String? = null, showFilters: Boolean? = false) {
         pendingSearchQuery = query
@@ -158,6 +183,7 @@ fun OtomotUZplusApp(
         }
     }
 
+    if (shouldShowDialog) {
     LaunchedEffect(Unit) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             val permission = Manifest.permission.POST_NOTIFICATIONS
@@ -171,46 +197,22 @@ fun OtomotUZplusApp(
 
     if (showRationaleDialog) {
         AlertDialog(
-            onDismissRequest = {
-                showRationaleDialog = false
-            },
+            onDismissRequest = {  },
             icon = { Icon(Icons.Filled.Notifications, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
-            title = {
-                Text(
-                    text = "Powiadomienia o okazjach",
-                    style = MaterialTheme.typography.headlineSmall
-                )
-            },
-            text = {
-                Text(
-                    text = "Ciągle przegapiasz tanie Passaty? Włącz powiadomienia, aby otrzymywać info o nowych autach i promocjach!",
-                    style = MaterialTheme.typography.bodyMedium
-                )
-            },
+            title = { Text(text = "${strings.dealNotification}", style = MaterialTheme.typography.headlineSmall) },
+            text = { Text(text = "${strings.dealNotificationDescription}", style = MaterialTheme.typography.bodyMedium) },
             confirmButton = {
-                Button(
-                    onClick = {
-                        showRationaleDialog = false
-                        onRequestNotificationPermission()
-                    }
-                ) {
-                    Text("Włącz")
-                }
+                Button(onClick = {
+                    onRequestNotificationPermission()
+                }) { Text("${strings.enable}") }
             },
             dismissButton = {
-                TextButton(
-                    onClick = {
-                        showRationaleDialog = false
-                    }
-                ) {
-                    Text("Może później")
-                }
-            },
-            containerColor = MaterialTheme.colorScheme.surface,
-            tonalElevation = 6.dp
+                TextButton(onClick = {
+                    onSetNotificationsRefused(true)
+                }) { Text("${strings.maybeLater}") }
+            }
         )
     }
-
     val navItems = listOf(
         NavigationItem(AppDestinations.HOME, strings.home, Icons.Filled.Home, Icons.Outlined.Home),
         NavigationItem(AppDestinations.SEARCH, strings.search, Icons.Filled.Search, Icons.Outlined.Search),

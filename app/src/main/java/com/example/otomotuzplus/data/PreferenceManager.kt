@@ -7,7 +7,15 @@ enum class ThemeMode { LIGHT, DARK, SYSTEM }
 
 class PreferenceManager(context: Context) {
     private val prefs: SharedPreferences = context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+    private val KEY_NOTIFICATIONS_REFUSED = "notifications_refused"
 
+    fun setNotificationsRefused(refused: Boolean) {
+        prefs.edit().putBoolean(KEY_NOTIFICATIONS_REFUSED, refused).apply()
+    }
+
+    fun wasNotificationsRefused(): Boolean {
+        return prefs.getBoolean(KEY_NOTIFICATIONS_REFUSED, false)
+    }
     fun setThemeMode(mode: ThemeMode) {
         prefs.edit().putString("theme_mode", mode.name).apply()
     }
