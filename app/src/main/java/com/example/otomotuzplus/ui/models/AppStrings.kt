@@ -104,7 +104,14 @@ data class AppStrings(
     val addListingError: String,
     val addListingRequiredFields: String,
     val uploading: String,
-    val noEmail: String
+    val noEmail: String,
+    val postalCode: String,
+    val postalCodeInvalid: String,
+    val mapViewToggle: String,
+    val listViewToggle: String,
+    val searchRadius: String,
+    val radiusAny: String,
+    val addListingGeocodingWarning: String
 )
 
 val PolishStrings = AppStrings(
@@ -211,7 +218,14 @@ val PolishStrings = AppStrings(
     addListingError = "Błąd: %s",
     addListingRequiredFields = "Podaj przynajmniej markę i cenę!",
     uploading = "Wysyłanie...",
-    noEmail = "brak emaila"
+    noEmail = "brak emaila",
+    postalCode = "Kod pocztowy",
+    postalCodeInvalid = "Niepoprawny kod pocztowy (format: XX-XXX)",
+    mapViewToggle = "Mapa",
+    listViewToggle = "Lista",
+    searchRadius = "Promień",
+    radiusAny = "Dowolny",
+    addListingGeocodingWarning = "Dodano bez lokalizacji na mapie"
 )
 
 val EnglishStrings = AppStrings(
@@ -318,5 +332,12 @@ val EnglishStrings = AppStrings(
     addListingError = "Error: %s",
     addListingRequiredFields = "Provide at least brand and price!",
     uploading = "Uploading...",
-    noEmail = "no email"
+    noEmail = "no email",
+    postalCode = "Postal code",
+    postalCodeInvalid = "Invalid postal code (format: XX-XXX)",
+    mapViewToggle = "Map",
+    listViewToggle = "List",
+    searchRadius = "Radius",
+    radiusAny = "Any",
+    addListingGeocodingWarning = "Added without map location"
 )

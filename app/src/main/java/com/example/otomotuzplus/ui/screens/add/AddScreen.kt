@@ -13,12 +13,19 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.OffsetMapping
+import androidx.compose.ui.text.input.TransformedText
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.otomotuzplus.data.FirebaseRepository
+import com.example.otomotuzplus.data.geocodePostalCode
 import com.example.otomotuzplus.models.CarAd
 import com.example.otomotuzplus.ui.models.AppStrings
+import kotlinx.coroutines.launch
+import androidx.compose.runtime.rememberCoroutineScope
 import com.example.otomotuzplus.ui.theme.BrandGold
 import java.io.File
 import androidx.core.content.FileProvider
@@ -41,9 +48,11 @@ fun AddScreen(
 ) {
     val context = LocalContext.current
     val repository = remember { FirebaseRepository() }
+    val coroutineScope = rememberCoroutineScope()
     var title by remember { mutableStateOf("") }
     var priceText by remember { mutableStateOf("") }
     var locationText by remember { mutableStateOf("") }
+    var postalCode by remember { mutableStateOf("") }
     var year by remember { mutableStateOf("") }
     var mileageText by remember { mutableStateOf("") }
     var fuelText by remember(strings) { mutableStateOf(strings.fuelPetrol) }
@@ -142,6 +151,32 @@ fun AddScreen(
                 colors = customTextFieldColors()
             )
         }
+
+        OutlinedTextField(
+            value = postalCode,
+            onValueChange = { postalCode = it.filter { c -> c.isDigit() }.take(5) },
+            label = { Text(strings.postalCode) },
+            placeholder = { Text("00-000") },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            visualTransformation = remember {
+                VisualTransformation { raw ->
+                    val s = raw.text
+                    val formatted = if (s.length <= 2) s else "${s.take(2)}-${s.drop(2)}"
+                    TransformedText(
+                        text = AnnotatedString(formatted),
+                        offsetMapping = object : OffsetMapping {
+                            override fun originalToTransformed(offset: Int) =
+                                if (offset <= 2) offset else offset + 1
+                            override fun transformedToOriginal(offset: Int) =
+                                if (offset <= 2) offset else (offset - 1).coerceAtMost(s.length)
+                        }
+                    )
+                }
+            },
+            colors = customTextFieldColors()
+        )
 
         Column(modifier = Modifier.fillMaxWidth()) {
             Text(
@@ -303,41 +338,52 @@ fun AddScreen(
 
         Button(
             onClick = {
-                if (title.isNotBlank() && priceText.isNotBlank()) {
-                    isUploading = true
-
-                    repository.uploadImages(selectedImageUris) { uploadedUrls ->
-
-                        val currentUserEmail = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.email ?: strings.noEmail
-                        val newCar = CarAd(
-                            title = title,
-                            priceText = priceText,
-                            locationText = locationText,
-                            year = year,
-                            mileageText = mileageText,
-                            fuelText = fuelText,
-                            gearboxText = gearboxText,
-                            engineCapacity = engineCapacity,
-                            powerText = powerText,
-                            imageUrls = uploadedUrls,
-                            sellerId = currentUserEmail
-                        )
-
-                        repository.addCar(
-                            car = newCar,
-                            onSuccess = {
-                                isUploading = false
-                                Toast.makeText(context, strings.addListingSuccess, Toast.LENGTH_SHORT).show()
-                                onNavigateBack()
-                            },
-                            onFailure = { e ->
-                                isUploading = false
-                                Toast.makeText(context, strings.addListingError.format(e.message ?: ""), Toast.LENGTH_LONG).show()
+                val validPostal = postalCode.length == 5
+                when {
+                    title.isBlank() || priceText.isBlank() ->
+                        Toast.makeText(context, strings.addListingRequiredFields, Toast.LENGTH_SHORT).show()
+                    !validPostal ->
+                        Toast.makeText(context, strings.postalCodeInvalid, Toast.LENGTH_SHORT).show()
+                    else -> {
+                        isUploading = true
+                        coroutineScope.launch {
+                            val coords = geocodePostalCode("${postalCode.take(2)}-${postalCode.drop(2)}")
+                            repository.uploadImages(selectedImageUris) { uploadedUrls ->
+                                val currentUserEmail = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.email ?: strings.noEmail
+                                val newCar = CarAd(
+                                    title = title,
+                                    priceText = priceText,
+                                    locationText = locationText,
+                                    postalCode = "${postalCode.take(2)}-${postalCode.drop(2)}",
+                                    latitude = coords?.first ?: 0.0,
+                                    longitude = coords?.second ?: 0.0,
+                                    year = year,
+                                    mileageText = mileageText,
+                                    fuelText = fuelText,
+                                    gearboxText = gearboxText,
+                                    engineCapacity = engineCapacity,
+                                    powerText = powerText,
+                                    imageUrls = uploadedUrls,
+                                    sellerId = currentUserEmail
+                                )
+                                repository.addCar(
+                                    car = newCar,
+                                    onSuccess = {
+                                        isUploading = false
+                                        val msg = if (coords == null)
+                                            "${strings.addListingSuccess} (${strings.addListingGeocodingWarning})"
+                                        else strings.addListingSuccess
+                                        Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+                                        onNavigateBack()
+                                    },
+                                    onFailure = { e ->
+                                        isUploading = false
+                                        Toast.makeText(context, strings.addListingError.format(e.message ?: ""), Toast.LENGTH_LONG).show()
+                                    }
+                                )
                             }
-                        )
+                        }
                     }
-                } else {
-                    Toast.makeText(context, strings.addListingRequiredFields, Toast.LENGTH_SHORT).show()
                 }
             },
             modifier = Modifier
