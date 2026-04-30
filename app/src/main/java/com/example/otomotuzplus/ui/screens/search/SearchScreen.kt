@@ -65,6 +65,7 @@ import com.example.otomotuzplus.ui.models.localizeGearboxType
 import com.example.otomotuzplus.ui.theme.BrandGold
 import com.example.otomotuzplus.ui.theme.Slate400
 import java.util.Locale
+import kotlinx.coroutines.delay
 import kotlin.math.asin
 import kotlin.math.cos
 import kotlin.math.pow
@@ -139,6 +140,7 @@ fun SearchScreen(
         clusterCenter = null
         clusterRadiusKm = null
         if (filters.location.isNotBlank() && filters.radiusKm != null) {
+            delay(400)
             geocodedCenter = geocodeCity(filters.location)
         }
     }
