@@ -20,8 +20,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material.icons.filled.ViewList
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
@@ -50,6 +52,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.otomotuzplus.data.geocodeCity
 import com.example.otomotuzplus.models.CarAd
 import com.example.otomotuzplus.ui.components.ListingCard
 import com.example.otomotuzplus.ui.components.ListingCardData
@@ -62,6 +65,12 @@ import com.example.otomotuzplus.ui.models.localizeGearboxType
 import com.example.otomotuzplus.ui.theme.BrandGold
 import com.example.otomotuzplus.ui.theme.Slate400
 import java.util.Locale
+import kotlinx.coroutines.delay
+import kotlin.math.asin
+import kotlin.math.cos
+import kotlin.math.pow
+import kotlin.math.sin
+import kotlin.math.sqrt
 
 enum class SortOption {
     NAME_ASC, NAME_DESC, PRICE_ASC, PRICE_DESC, YEAR_DESC, MILEAGE_ASC
@@ -77,11 +86,12 @@ data class SearchFilters(
     val maxMileage: String = "",
     val fuelType: String? = null,
     val transmission: String? = null,
-    val location: String = ""
+    val location: String = "",
+    val radiusKm: Int? = null
 )
 
 private enum class ActiveFilterKey {
-    QUERY, BRAND, MODEL, PRICE_RANGE, YEAR_RANGE, MAX_MILEAGE, FUEL, TRANSMISSION, LOCATION
+    QUERY, BRAND, MODEL, PRICE_RANGE, YEAR_RANGE, MAX_MILEAGE, FUEL, TRANSMISSION, LOCATION, CLUSTER_AREA
 }
 
 private data class ActiveFilterItem(val key: ActiveFilterKey, val label: String)
@@ -105,6 +115,11 @@ fun SearchScreen(
     var showSortMenu by rememberSaveable { mutableStateOf(false) }
     var sortOption by rememberSaveable { mutableStateOf(SortOption.NAME_ASC) }
     var filters by remember { mutableStateOf(SearchFilters()) }
+    var showMapView by rememberSaveable { mutableStateOf(false) }
+
+    var geocodedCenter by remember { mutableStateOf<Pair<Double, Double>?>(null) }
+    var clusterCenter by remember { mutableStateOf<Pair<Double, Double>?>(null) }
+    var clusterRadiusKm by remember { mutableStateOf<Double?>(null) }
 
     var visibleCars by remember { mutableStateOf(allCarsFromDb) }
 
@@ -120,72 +135,103 @@ fun SearchScreen(
         }
     }
 
-    val activeFilters = remember(query, filters, strings) {
-        buildActiveFilterItems(query = query, filters = filters, strings = strings)
+    LaunchedEffect(filters.location, filters.radiusKm) {
+        geocodedCenter = null
+        clusterCenter = null
+        clusterRadiusKm = null
+        if (filters.location.isNotBlank() && filters.radiusKm != null) {
+            delay(400)
+            geocodedCenter = geocodeCity(filters.location)
+        }
     }
 
-    LaunchedEffect(query, filters, sortOption, allCarsFromDb) {
+    LaunchedEffect(query, filters, sortOption, allCarsFromDb, geocodedCenter, clusterCenter, clusterRadiusKm) {
         visibleCars = allCarsFromDb
-            .filter { it.matches(query, filters) }
+            .filter { it.matches(query, filters, geocodedCenter, clusterCenter, clusterRadiusKm) }
             .sortedWith(sortComparator(sortOption))
     }
 
-    LazyColumn(
+    val activeFilters = remember(query, filters, strings, clusterCenter, clusterRadiusKm) {
+        buildActiveFilterItems(query, filters, strings, clusterCenter, clusterRadiusKm)
+    }
+
+    Column(
         modifier = modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background),
-        verticalArrangement = Arrangement.spacedBy(14.dp)
+            .background(MaterialTheme.colorScheme.background)
     ) {
-        item {
-            Spacer(modifier = Modifier.height(8.dp))
-            ScreenHeader(title = strings.search) {
+        Spacer(modifier = Modifier.height(8.dp))
+
+        ScreenHeader(
+            title = strings.search,
+            trailingWidth = 176.dp
+        ) {
+            Surface(
+                shape = RoundedCornerShape(12.dp),
+                color = MaterialTheme.colorScheme.surface,
+                tonalElevation = 2.dp
+            ) {
+                IconButton(onClick = {
+                    val newShowMap = !showMapView
+                    showMapView = newShowMap
+                    if (newShowMap) showFilters = false
+                }) {
+                    Icon(
+                        imageVector = if (showMapView) Icons.Default.ViewList else Icons.Default.Map,
+                        contentDescription = if (showMapView) strings.listViewToggle else strings.mapViewToggle,
+                        tint = if (showMapView) BrandGold else MaterialTheme.colorScheme.onSurface
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.width(8.dp))
+            Surface(
+                shape = RoundedCornerShape(12.dp),
+                color = MaterialTheme.colorScheme.surface,
+                tonalElevation = 2.dp
+            ) {
+                IconButton(onClick = { showFilters = !showFilters }) {
+                    Icon(
+                        imageVector = Icons.Default.Tune,
+                        contentDescription = strings.filters,
+                        tint = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.width(8.dp))
+            Box {
                 Surface(
                     shape = RoundedCornerShape(12.dp),
                     color = MaterialTheme.colorScheme.surface,
                     tonalElevation = 2.dp
                 ) {
-                    IconButton(onClick = { showFilters = !showFilters }) {
+                    IconButton(onClick = { showSortMenu = true }) {
                         Icon(
-                            imageVector = Icons.Default.Tune,
-                            contentDescription = strings.filters,
+                            imageVector = Icons.AutoMirrored.Filled.Sort,
+                            contentDescription = strings.sortBy,
                             tint = MaterialTheme.colorScheme.onSurface
                         )
                     }
                 }
-                Spacer(modifier = Modifier.width(8.dp))
-                Box {
-                    Surface(
-                        shape = RoundedCornerShape(12.dp),
-                        color = MaterialTheme.colorScheme.surface,
-                        tonalElevation = 2.dp
-                    ) {
-                        IconButton(onClick = { showSortMenu = true }) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.Sort,
-                                contentDescription = strings.sortBy,
-                                tint = MaterialTheme.colorScheme.onSurface
-                            )
-                        }
-                    }
-                    DropdownMenu(
-                        expanded = showSortMenu,
-                        onDismissRequest = { showSortMenu = false }
-                    ) {
-                        sortOptions(strings).forEach { option ->
-                            DropdownMenuItem(
-                                text = { Text(option.label) },
-                                onClick = {
-                                    sortOption = option.value
-                                    showSortMenu = false
-                                }
-                            )
-                        }
+                DropdownMenu(
+                    expanded = showSortMenu,
+                    onDismissRequest = { showSortMenu = false }
+                ) {
+                    sortOptions(strings).forEach { option ->
+                        DropdownMenuItem(
+                            text = { Text(option.label) },
+                            onClick = {
+                                sortOption = option.value
+                                showSortMenu = false
+                            }
+                        )
                     }
                 }
             }
         }
 
-        item {
+        if (!showMapView) {
+            Spacer(modifier = Modifier.height(8.dp))
+
             val config = LocalConfiguration.current
             val screenWidth = config.screenWidthDp
             val placeholderSize = if (screenWidth < 360) 12.sp else 14.sp
@@ -214,9 +260,9 @@ fun SearchScreen(
                     cursorColor = BrandGold
                 )
             )
-        }
 
-        item {
+            Spacer(modifier = Modifier.height(4.dp))
+
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -233,6 +279,9 @@ fun SearchScreen(
                     query = ""
                     filters = SearchFilters()
                     sortOption = SortOption.NAME_ASC
+                    geocodedCenter = null
+                    clusterCenter = null
+                    clusterRadiusKm = null
                 }) {
                     Text(strings.resetFilters)
                 }
@@ -240,77 +289,107 @@ fun SearchScreen(
         }
 
         if (showFilters) {
-            item {
-                FiltersCard(
-                    strings = strings,
-                    filters = filters,
-                    onFiltersChange = { filters = it }
-                )
-            }
+            FiltersCard(
+                strings = strings,
+                filters = filters,
+                onFiltersChange = { filters = it }
+            )
+            Spacer(modifier = Modifier.height(4.dp))
         }
 
         if (activeFilters.isNotEmpty()) {
-            item {
-                ActiveFiltersRow(
-                    filters = activeFilters,
-                    onRemove = { key ->
-                        when (key) {
-                            ActiveFilterKey.QUERY -> query = ""
-                            ActiveFilterKey.BRAND -> filters = filters.copy(brand = null)
-                            ActiveFilterKey.MODEL -> filters = filters.copy(modelQuery = "")
-                            ActiveFilterKey.PRICE_RANGE -> filters = filters.copy(minPrice = "", maxPrice = "")
-                            ActiveFilterKey.YEAR_RANGE -> filters = filters.copy(minYear = "", maxYear = "")
-                            ActiveFilterKey.MAX_MILEAGE -> filters = filters.copy(maxMileage = "")
-                            ActiveFilterKey.FUEL -> filters = filters.copy(fuelType = null)
-                            ActiveFilterKey.TRANSMISSION -> filters = filters.copy(transmission = null)
-                            ActiveFilterKey.LOCATION -> filters = filters.copy(location = "")
+            ActiveFiltersRow(
+                filters = activeFilters,
+                onRemove = { key ->
+                    when (key) {
+                        ActiveFilterKey.QUERY -> query = ""
+                        ActiveFilterKey.BRAND -> filters = filters.copy(brand = null)
+                        ActiveFilterKey.MODEL -> filters = filters.copy(modelQuery = "")
+                        ActiveFilterKey.PRICE_RANGE -> filters = filters.copy(minPrice = "", maxPrice = "")
+                        ActiveFilterKey.YEAR_RANGE -> filters = filters.copy(minYear = "", maxYear = "")
+                        ActiveFilterKey.MAX_MILEAGE -> filters = filters.copy(maxMileage = "")
+                        ActiveFilterKey.FUEL -> filters = filters.copy(fuelType = null)
+                        ActiveFilterKey.TRANSMISSION -> filters = filters.copy(transmission = null)
+                        ActiveFilterKey.LOCATION -> {
+                            filters = filters.copy(location = "", radiusKm = null)
+                            geocodedCenter = null
+                        }
+                        ActiveFilterKey.CLUSTER_AREA -> {
+                            clusterCenter = null
+                            clusterRadiusKm = null
                         }
                     }
-                )
-            }
-        }
-
-        if (visibleCars.isEmpty()) {
-            item {
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp),
-                    shape = RoundedCornerShape(18.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-                ) {
-                    Text(
-                        text = strings.noSearchResults,
-                        modifier = Modifier.padding(20.dp),
-                        color = Slate400
-                    )
                 }
-            }
-        } else {
-            items(visibleCars) { car ->
-                val carKey = "${car.id}|${car.title}"
-                ListingCard(
-                    item = ListingCardData(
-                        title = car.title,
-                        year = car.year,
-                        mileageText = car.mileageText.withSuffix(strings.unitKm),
-                        fuelText = localizeFuelType(car.fuelText, strings),
-                        bodyTypeText = localizeGearboxType(car.gearboxText, strings),
-                        driveTypeText = car.engineCapacity.withSuffix(strings.unitCm3),
-                        locationText = car.locationText,
-                        priceText = car.priceText.withSuffix(strings.unitCurrency),
-                        isFavorite = favoriteCars.contains(carKey),
-                        coverImageUrl = car.imageUrls.firstOrNull(),
-                        onFavoriteClick = { onFavoriteToggle(carKey) }
-                    ),
-                    modifier = Modifier
-                        .padding(horizontal = 16.dp)
-                        .clickable { onCarClick(car) }
-                )
-            }
+            )
+            Spacer(modifier = Modifier.height(4.dp))
         }
 
-        item { Spacer(modifier = Modifier.height(10.dp)) }
+        if (showMapView) {
+            Spacer(modifier = Modifier.height(8.dp))
+            CarMapView(
+                cars = visibleCars,
+                onSingleCarTap = onCarClick,
+                onClusterTap = { clusterCars ->
+                    val avgLat = clusterCars.map { it.latitude }.average()
+                    val avgLng = clusterCars.map { it.longitude }.average()
+                    val maxDistKm = clusterCars.maxOf {
+                        haversineKm(avgLat, avgLng, it.latitude, it.longitude)
+                    }
+                    clusterCenter = Pair(avgLat, avgLng)
+                    clusterRadiusKm = maxOf(maxDistKm * 1.5, 1.0)
+                    showMapView = false
+                },
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+            )
+        } else {
+            LazyColumn(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                if (visibleCars.isEmpty()) {
+                    item {
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp),
+                            shape = RoundedCornerShape(18.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                        ) {
+                            Text(
+                                text = strings.noSearchResults,
+                                modifier = Modifier.padding(20.dp),
+                                color = Slate400
+                            )
+                        }
+                    }
+                } else {
+                    items(visibleCars) { car ->
+                        val carKey = "${car.id}|${car.title}"
+                        ListingCard(
+                            item = ListingCardData(
+                                title = car.title,
+                                year = car.year,
+                                mileageText = car.mileageText.withSuffix(strings.unitKm),
+                                fuelText = localizeFuelType(car.fuelText, strings),
+                                bodyTypeText = localizeGearboxType(car.gearboxText, strings),
+                                driveTypeText = car.engineCapacity.withSuffix(strings.unitCm3),
+                                locationText = car.locationText,
+                                priceText = car.priceText.withSuffix(strings.unitCurrency),
+                                isFavorite = favoriteCars.contains(carKey),
+                                coverImageUrl = car.imageUrls.firstOrNull(),
+                                onFavoriteClick = { onFavoriteToggle(carKey) }
+                            ),
+                            modifier = Modifier
+                                .padding(horizontal = 16.dp)
+                                .clickable { onCarClick(car) }
+                        )
+                    }
+                }
+                item { Spacer(modifier = Modifier.height(10.dp)) }
+            }
+        }
     }
 }
 
@@ -367,7 +446,32 @@ private fun FiltersCard(strings: AppStrings, filters: SearchFilters, onFiltersCh
             }
 
             LabeledInput(label = strings.maxMileage, value = filters.maxMileage, onValueChange = { onFiltersChange(filters.copy(maxMileage = it.filter(Char::isDigit))) }, placeholder = "np. 60000")
-            LabeledInput(label = strings.location, value = filters.location, onValueChange = { onFiltersChange(filters.copy(location = it)) }, placeholder = "np. Warszawa")
+            LabeledInput(label = strings.location, value = filters.location, onValueChange = {
+                onFiltersChange(filters.copy(location = it, radiusKm = if (it.isBlank()) null else filters.radiusKm))
+            }, placeholder = "np. Warszawa")
+
+            if (filters.location.isNotBlank()) {
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(
+                        text = strings.searchRadius,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        fontWeight = FontWeight.Medium
+                    )
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        val radiusOptions = listOf<Int?>(null, 25, 50, 100, 200)
+                        items(radiusOptions.size) { i ->
+                            val km = radiusOptions[i]
+                            FilterChip(
+                                selected = filters.radiusKm == km,
+                                onClick = {
+                                    onFiltersChange(filters.copy(radiusKm = if (filters.radiusKm == km) null else km))
+                                },
+                                label = { Text(if (km == null) strings.radiusAny else "$km km") }
+                            )
+                        }
+                    }
+                }
+            }
 
             SingleSelectChipRow(
                 label = strings.fuelType,
@@ -432,7 +536,21 @@ private fun sortComparator(option: SortOption): Comparator<CarAd> = when (option
     SortOption.MILEAGE_ASC -> compareBy { it.mileageText.filter(Char::isDigit).toIntOrNull() ?: 0 }
 }
 
-private fun CarAd.matches(query: String, filters: SearchFilters): Boolean {
+private fun haversineKm(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
+    val R = 6371.0
+    val dLat = Math.toRadians(lat2 - lat1)
+    val dLon = Math.toRadians(lon2 - lon1)
+    val a = sin(dLat / 2).pow(2) + cos(Math.toRadians(lat1)) * cos(Math.toRadians(lat2)) * sin(dLon / 2).pow(2)
+    return R * 2 * asin(sqrt(a))
+}
+
+private fun CarAd.matches(
+    query: String,
+    filters: SearchFilters,
+    geocodedCenter: Pair<Double, Double>?,
+    clusterCenter: Pair<Double, Double>?,
+    clusterRadiusKm: Double?
+): Boolean {
     val normalizedQuery = query.trim()
     val minPrice = filters.minPrice.toIntOrNull()
     val maxPrice = filters.maxPrice.toIntOrNull()
@@ -446,10 +564,26 @@ private fun CarAd.matches(query: String, filters: SearchFilters): Boolean {
 
     val queryMatch = normalizedQuery.isBlank() || title.contains(normalizedQuery, ignoreCase = true)
 
+    val useClusterFilter = clusterCenter != null && clusterRadiusKm != null
+    val useGeoFilter = geocodedCenter != null && filters.radiusKm != null
+
+    val locationMatch = when {
+        useClusterFilter -> {
+            if (latitude == 0.0 && longitude == 0.0) false
+            else haversineKm(clusterCenter!!.first, clusterCenter.second, latitude, longitude) <= clusterRadiusKm!!
+        }
+        useGeoFilter -> {
+            if (latitude == 0.0 && longitude == 0.0) false
+            else haversineKm(geocodedCenter!!.first, geocodedCenter.second, latitude, longitude) <= filters.radiusKm!!
+        }
+        filters.location.isNotBlank() -> locationText.contains(filters.location, ignoreCase = true)
+        else -> true
+    }
+
     return queryMatch &&
+            locationMatch &&
             (filters.brand.isNullOrBlank() || title.contains(filters.brand, ignoreCase = true)) &&
             (filters.modelQuery.isBlank() || title.contains(filters.modelQuery, ignoreCase = true)) &&
-            (filters.location.isBlank() || locationText.contains(filters.location, ignoreCase = true)) &&
             (filters.fuelType == null || fuelTypeKey(fuelText) == fuelTypeKey(filters.fuelType)) &&
             (filters.transmission == null || gearboxTypeKey(gearboxText) == gearboxTypeKey(filters.transmission)) &&
             (minPrice == null || carPrice >= minPrice) &&
@@ -459,7 +593,13 @@ private fun CarAd.matches(query: String, filters: SearchFilters): Boolean {
             (maxMileage == null || carMileage <= maxMileage)
 }
 
-private fun buildActiveFilterItems(query: String, filters: SearchFilters, strings: AppStrings): List<ActiveFilterItem> {
+private fun buildActiveFilterItems(
+    query: String,
+    filters: SearchFilters,
+    strings: AppStrings,
+    clusterCenter: Pair<Double, Double>?,
+    clusterRadiusKm: Double?
+): List<ActiveFilterItem> {
     val labels = mutableListOf<ActiveFilterItem>()
     if (query.isNotBlank()) labels += ActiveFilterItem(ActiveFilterKey.QUERY, "${strings.search}: ${query.trim()}")
     if (!filters.brand.isNullOrBlank()) labels += ActiveFilterItem(ActiveFilterKey.BRAND, "${strings.brand}: ${filters.brand.trim()}")
@@ -473,7 +613,19 @@ private fun buildActiveFilterItems(query: String, filters: SearchFilters, string
     if (filters.maxMileage.isNotBlank()) labels += ActiveFilterItem(ActiveFilterKey.MAX_MILEAGE, "${strings.maxMileage}: ${filters.maxMileage}")
     if (!filters.fuelType.isNullOrBlank()) labels += ActiveFilterItem(ActiveFilterKey.FUEL, "${strings.fuelType}: ${filters.fuelType}")
     if (!filters.transmission.isNullOrBlank()) labels += ActiveFilterItem(ActiveFilterKey.TRANSMISSION, "${strings.transmission}: ${filters.transmission}")
-    if (filters.location.isNotBlank()) labels += ActiveFilterItem(ActiveFilterKey.LOCATION, "${strings.location}: ${filters.location.trim()}")
+    if (filters.location.isNotBlank()) {
+        val label = if (filters.radiusKm != null)
+            "${strings.location}: ${filters.location.trim()} (${filters.radiusKm} km)"
+        else
+            "${strings.location}: ${filters.location.trim()}"
+        labels += ActiveFilterItem(ActiveFilterKey.LOCATION, label)
+    }
+    if (clusterCenter != null && filters.location.isBlank()) {
+        labels += ActiveFilterItem(
+            ActiveFilterKey.CLUSTER_AREA,
+            "≤ ${clusterRadiusKm?.toInt() ?: "?"} km"
+        )
+    }
     return labels
 }
 
@@ -481,4 +633,3 @@ private fun String.withSuffix(suffix: String): String {
     val value = trim()
     return if (value.isEmpty()) "" else "$value $suffix"
 }
-
