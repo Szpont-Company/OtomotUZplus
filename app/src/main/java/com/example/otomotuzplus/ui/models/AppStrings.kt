@@ -111,7 +111,10 @@ data class AppStrings(
     val listViewToggle: String,
     val searchRadius: String,
     val radiusAny: String,
-    val addListingGeocodingWarning: String
+    val addListingGeocodingWarning: String,
+    val phoneNumber: String,
+    val callSeller: String,
+    val messageSeller: String
 )
 
 val PolishStrings = AppStrings(
@@ -225,7 +228,10 @@ val PolishStrings = AppStrings(
     listViewToggle = "Lista",
     searchRadius = "Promień",
     radiusAny = "Dowolny",
-    addListingGeocodingWarning = "Dodano bez lokalizacji na mapie"
+    addListingGeocodingWarning = "Dodano bez lokalizacji na mapie",
+    phoneNumber = "Numer telefonu",
+    callSeller = "Zadzwoń",
+    messageSeller = "Wyślij SMS"
 )
 
 val EnglishStrings = AppStrings(
@@ -339,5 +345,8 @@ val EnglishStrings = AppStrings(
     listViewToggle = "List",
     searchRadius = "Radius",
     radiusAny = "Any",
-    addListingGeocodingWarning = "Added without map location"
+    addListingGeocodingWarning = "Added without map location",
+    phoneNumber = "Phone number",
+    callSeller = "Call",
+    messageSeller = "Send SMS"
 )

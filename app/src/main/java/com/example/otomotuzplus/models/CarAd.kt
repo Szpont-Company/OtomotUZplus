@@ -15,5 +15,6 @@ data class CarAd(
     val engineCapacity: String = "",
     val powerText: String = "",
     val imageUrls: List<String> = emptyList(),
-    val sellerId: String = ""
+    val sellerId: String = "",
+    val phoneNumber: String = ""
 )

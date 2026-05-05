@@ -1,5 +1,7 @@
 package com.example.otomotuzplus.ui.screens.details
 
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -15,6 +17,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -24,6 +27,7 @@ import com.example.otomotuzplus.models.CarAd
 import com.example.otomotuzplus.ui.models.AppStrings
 import com.example.otomotuzplus.ui.models.localizeFuelType
 import com.example.otomotuzplus.ui.models.localizeGearboxType
+import com.example.otomotuzplus.ui.theme.BrandGold
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -32,10 +36,12 @@ fun AdDetailScreen(
     strings: AppStrings,
     onBackClick: () -> Unit
 ) {
+    val context = LocalContext.current
     val title = car.title.trim()
     val location = car.locationText.trim()
     val price = car.priceText.trim()
     val seller = car.sellerId.trim()
+    val phone = car.phoneNumber.trim()
 
     val specs = buildList {
         if (car.year.isNotBlank()) add(DetailSpec(Icons.Default.DateRange, car.year.trim(), strings.yearProduction))
@@ -167,6 +173,39 @@ fun AdDetailScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontWeight = FontWeight.Medium
                     )
+                }
+
+                if (phone.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Button(
+                            onClick = {
+                                context.startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:$phone")))
+                            },
+                            modifier = Modifier.weight(1f).height(50.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = BrandGold),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Icon(Icons.Default.Phone, contentDescription = null, tint = Color.Black, modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(strings.callSeller, color = Color.Black, fontWeight = FontWeight.Bold)
+                        }
+                        Button(
+                            onClick = {
+                                context.startActivity(Intent(Intent.ACTION_SENDTO, Uri.parse("sms:$phone")))
+                            },
+                            modifier = Modifier.weight(1f).height(50.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Icon(Icons.Default.Message, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(strings.messageSeller, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
+                        }
+                    }
                 }
             }
         }
