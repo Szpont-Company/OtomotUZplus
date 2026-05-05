@@ -376,7 +376,7 @@ fun AddScreen(
                                     powerText = powerText,
                                     imageUrls = uploadedUrls,
                                     sellerId = currentUserEmail,
-                                    phoneNumber = phoneNumber
+                                    phoneNumber = phoneNumber.trim()
                                 )
                                 repository.addCar(
                                     car = newCar,

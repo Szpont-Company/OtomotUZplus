@@ -41,7 +41,7 @@ fun AdDetailScreen(
     val location = car.locationText.trim()
     val price = car.priceText.trim()
     val seller = car.sellerId.trim()
-    val phone = car.phoneNumber.trim()
+    val phone = car.phoneNumber.trim().filter { c -> c.isDigit() || c == '+' || c == ' ' || c == '-' }
 
     val specs = buildList {
         if (car.year.isNotBlank()) add(DetailSpec(Icons.Default.DateRange, car.year.trim(), strings.yearProduction))
@@ -174,37 +174,41 @@ fun AdDetailScreen(
                         fontWeight = FontWeight.Medium
                     )
                 }
+            }
 
-                if (phone.isNotEmpty()) {
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Button(
-                            onClick = {
+            if (phone.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(12.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Button(
+                        onClick = {
+                            try {
                                 context.startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:$phone")))
-                            },
-                            modifier = Modifier.weight(1f).height(50.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = BrandGold),
-                            shape = RoundedCornerShape(12.dp)
-                        ) {
-                            Icon(Icons.Default.Phone, contentDescription = null, tint = Color.Black, modifier = Modifier.size(18.dp))
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(strings.callSeller, color = Color.Black, fontWeight = FontWeight.Bold)
-                        }
-                        Button(
-                            onClick = {
+                            } catch (_: android.content.ActivityNotFoundException) { }
+                        },
+                        modifier = Modifier.weight(1f).height(50.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = BrandGold),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Icon(Icons.Default.Phone, contentDescription = null, tint = Color.Black, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(strings.callSeller, color = Color.Black, fontWeight = FontWeight.Bold)
+                    }
+                    Button(
+                        onClick = {
+                            try {
                                 context.startActivity(Intent(Intent.ACTION_SENDTO, Uri.parse("sms:$phone")))
-                            },
-                            modifier = Modifier.weight(1f).height(50.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                            shape = RoundedCornerShape(12.dp)
-                        ) {
-                            Icon(Icons.Default.Message, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp))
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(strings.messageSeller, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
-                        }
+                            } catch (_: android.content.ActivityNotFoundException) { }
+                        },
+                        modifier = Modifier.weight(1f).height(50.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Icon(Icons.Default.Message, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(strings.messageSeller, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
                     }
                 }
             }
