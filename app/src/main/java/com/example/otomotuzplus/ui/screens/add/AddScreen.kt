@@ -59,6 +59,7 @@ fun AddScreen(
     var gearboxText by remember(strings) { mutableStateOf(strings.transmissionManual) }
     var engineCapacity by remember { mutableStateOf("") }
     var powerText by remember { mutableStateOf("") }
+    var phoneNumber by remember { mutableStateOf("") }
     var isUploading by remember { mutableStateOf(false) }
     var selectedImageUris by remember { mutableStateOf<List<Uri>>(emptyList()) }
     var showPhotoSourceDialog by remember { mutableStateOf(false) }
@@ -282,6 +283,16 @@ fun AddScreen(
             )
         }
 
+        OutlinedTextField(
+            value = phoneNumber,
+            onValueChange = { phoneNumber = it.filter { c -> c.isDigit() || c == '+' || c == ' ' || c == '-' } },
+            label = { Text(strings.phoneNumber) },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            colors = customTextFieldColors()
+        )
+
         Spacer(modifier = Modifier.height(16.dp))
 
         Button(
@@ -364,7 +375,8 @@ fun AddScreen(
                                     engineCapacity = engineCapacity,
                                     powerText = powerText,
                                     imageUrls = uploadedUrls,
-                                    sellerId = currentUserEmail
+                                    sellerId = currentUserEmail,
+                                    phoneNumber = phoneNumber.trim()
                                 )
                                 repository.addCar(
                                     car = newCar,
