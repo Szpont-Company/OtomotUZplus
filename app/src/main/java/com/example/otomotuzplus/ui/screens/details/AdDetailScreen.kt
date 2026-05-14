@@ -1,8 +1,14 @@
 package com.example.otomotuzplus.ui.screens.details
 
+import android.content.Context
 import android.content.Intent
+import android.hardware.Sensor
+import android.hardware.SensorEvent
+import android.hardware.SensorEventListener
+import android.hardware.SensorManager
 import android.net.Uri
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -12,7 +18,7 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -28,6 +34,7 @@ import com.example.otomotuzplus.ui.models.AppStrings
 import com.example.otomotuzplus.ui.models.localizeFuelType
 import com.example.otomotuzplus.ui.models.localizeGearboxType
 import com.example.otomotuzplus.ui.theme.BrandGold
+import kotlin.math.sqrt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -41,7 +48,34 @@ fun AdDetailScreen(
     val location = car.locationText.trim()
     val price = car.priceText.trim()
     val seller = car.sellerId.trim()
-    val phone = car.phoneNumber.trim().filter { c -> c.isDigit() || c == '+' || c == ' ' || c == '-' }
+    val phone = car.phoneNumber.filter { it.isDigit() || it == '+' }
+
+    var isContactVisible by remember { mutableStateOf(false) }
+
+    DisposableEffect(Unit) {
+        val sensorManager = context.getSystemService(Context.SENSOR_SERVICE) as SensorManager
+        val accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
+
+        val listener = object : SensorEventListener {
+            override fun onSensorChanged(event: SensorEvent) {
+                val x = event.values[0]
+                val y = event.values[1]
+                val z = event.values[2]
+
+                val acceleration = sqrt((x * x + y * y + z * z).toDouble()) - 9.81
+                if (acceleration > 5) {
+                    isContactVisible = true
+                }
+            }
+            override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
+        }
+
+        sensorManager.registerListener(listener, accelerometer, SensorManager.SENSOR_DELAY_UI)
+
+        onDispose {
+            sensorManager.unregisterListener(listener)
+        }
+    }
 
     val specs = buildList {
         if (car.year.isNotBlank()) add(DetailSpec(Icons.Default.DateRange, car.year.trim(), strings.yearProduction))
@@ -70,29 +104,16 @@ fun AdDetailScreen(
 
         if (car.imageUrls.isNotEmpty()) {
             val pagerState = rememberPagerState(pageCount = { car.imageUrls.size })
-
             HorizontalPager(
                 state = pagerState,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(250.dp)
+                modifier = Modifier.fillMaxWidth().height(250.dp)
             ) { page ->
                 AsyncImage(
                     model = car.imageUrls[page],
-                    contentDescription = "Zdjęcie samochodu",
+                    contentDescription = null,
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop
                 )
-            }
-        } else {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(250.dp)
-                    .background(MaterialTheme.colorScheme.surfaceVariant),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(Icons.Default.DirectionsCar, contentDescription = null, modifier = Modifier.size(64.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
 
@@ -113,26 +134,19 @@ fun AdDetailScreen(
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     if (title.isNotEmpty()) {
-                        Text(text = title, fontSize = 28.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                        Text(text = title, fontSize = 24.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                     }
                     if (location.isNotEmpty()) {
                         Text(text = location, color = Color.Gray, fontSize = 14.sp)
                     }
                 }
-
                 if (price.isNotEmpty()) {
-                    Box(
-                        modifier = Modifier
-                            .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(12.dp))
-                            .padding(horizontal = 16.dp, vertical = 12.dp)
-                    ) {
-                        Text(
-                            text = "$price ${strings.unitCurrency}",
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
+                    Text(
+                        text = "$price ${strings.unitCurrency}",
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = BrandGold
+                    )
                 }
             }
 
@@ -143,77 +157,113 @@ fun AdDetailScreen(
                         rowItems.forEach { spec ->
                             SpecItem(icon = spec.icon, title = spec.title, subtitle = spec.subtitle, modifier = Modifier.weight(1f))
                         }
-                        if (rowItems.size == 1) {
-                            Spacer(modifier = Modifier.weight(1f))
-                        }
+                        if (rowItems.size == 1) Spacer(modifier = Modifier.weight(1f))
                     }
-
-                    if (rowIndex < specs.chunked(2).lastIndex) {
-                        Spacer(modifier = Modifier.height(8.dp))
-                    }
+                    if (rowIndex < specs.chunked(2).lastIndex) Spacer(modifier = Modifier.height(12.dp))
                 }
             }
 
             if (seller.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(24.dp))
-                Text(strings.seller, fontWeight = FontWeight.Bold, fontSize = 18.sp, color = MaterialTheme.colorScheme.onSurface)
+                Text(strings.seller, fontWeight = FontWeight.Bold, fontSize = 18.sp)
                 Spacer(modifier = Modifier.height(8.dp))
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(12.dp))
-                        .padding(16.dp),
+                        .padding(12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(Icons.Default.AccountCircle, contentDescription = null, modifier = Modifier.size(40.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Icon(Icons.Default.AccountCircle, contentDescription = null, modifier = Modifier.size(40.dp))
                     Spacer(modifier = Modifier.width(12.dp))
-                    Text(
-                        text = seller,
-                        fontSize = 16.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontWeight = FontWeight.Medium
-                    )
+                    Text(text = seller, fontSize = 16.sp, fontWeight = FontWeight.Medium)
                 }
             }
 
+            Spacer(modifier = Modifier.height(24.dp))
+
             if (phone.isNotEmpty()) {
-                Spacer(modifier = Modifier.height(12.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                if (isContactVisible) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Button(
+                            onClick = {
+                                try {
+                                    context.startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:$phone")))
+                                } catch (_: Exception) { }
+                            },
+                            modifier = Modifier.weight(1f).height(55.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = BrandGold),
+                            shape = RoundedCornerShape(14.dp)
+                        ) {
+                            Icon(Icons.Default.Phone, contentDescription = null, tint = Color.Black)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(strings.callSeller, color = Color.Black, fontWeight = FontWeight.Bold)
+                        }
+
+                        Button(
+                            onClick = {
+                                try {
+                                    context.startActivity(Intent(Intent.ACTION_SENDTO, Uri.parse("sms:$phone")))
+                                } catch (_: Exception) { }
+                            },
+                            modifier = Modifier.weight(1f).height(55.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                            shape = RoundedCornerShape(14.dp)
+                        ) {
+                            Icon(Icons.Default.Message, contentDescription = null)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(strings.messageSeller, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(BrandGold.copy(alpha = 0.1f), RoundedCornerShape(12.dp))
+                            .clickable { isContactVisible = true }
+                            .padding(16.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "Potrząśnij telefonem, aby odkryć kontakt",
+                            color = BrandGold,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            } else {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Color.LightGray.copy(alpha = 0.1f), RoundedCornerShape(12.dp))
+                        .padding(16.dp),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Button(
-                        onClick = {
-                            try {
-                                context.startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:$phone")))
-                            } catch (_: android.content.ActivityNotFoundException) { }
-                        },
-                        modifier = Modifier.weight(1f).height(50.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = BrandGold),
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Icon(Icons.Default.Phone, contentDescription = null, tint = Color.Black, modifier = Modifier.size(18.dp))
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(strings.callSeller, color = Color.Black, fontWeight = FontWeight.Bold)
-                    }
-                    Button(
-                        onClick = {
-                            try {
-                                context.startActivity(Intent(Intent.ACTION_SENDTO, Uri.parse("sms:$phone")))
-                            } catch (_: android.content.ActivityNotFoundException) { }
-                        },
-                        modifier = Modifier.weight(1f).height(50.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Icon(Icons.Default.Message, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp))
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(strings.messageSeller, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
-                    }
+                    Text(
+                        text = "Brak numeru telefonu w ogłoszeniu",
+                        color = Color.Gray,
+                        fontSize = 14.sp
+                    )
                 }
             }
         }
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(32.dp))
+    }
+}
+
+@Composable
+fun SpecItem(icon: ImageVector, title: String, subtitle: String, modifier: Modifier = Modifier) {
+    Row(modifier = modifier, verticalAlignment = Alignment.CenterVertically) {
+        Icon(icon, contentDescription = null, tint = Color.Gray, modifier = Modifier.size(24.dp))
+        Spacer(modifier = Modifier.width(8.dp))
+        Column {
+            Text(text = title, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+            Text(text = subtitle, fontSize = 12.sp, color = Color.Gray)
+        }
     }
 }
 
@@ -222,18 +272,3 @@ private data class DetailSpec(
     val title: String,
     val subtitle: String
 )
-
-@Composable
-fun SpecItem(icon: ImageVector, title: String, subtitle: String, modifier: Modifier = Modifier) {
-    Row(
-        modifier = modifier,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Icon(icon, contentDescription = null, tint = Color.Gray, modifier = Modifier.size(28.dp))
-        Spacer(modifier = Modifier.width(8.dp))
-        Column {
-            Text(text = title, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurface)
-            Text(text = subtitle, fontSize = 12.sp, color = Color.Gray)
-        }
-    }
-}
