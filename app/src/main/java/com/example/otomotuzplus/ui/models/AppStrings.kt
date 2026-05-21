@@ -114,7 +114,9 @@ data class AppStrings(
     val addListingGeocodingWarning: String,
     val phoneNumber: String,
     val callSeller: String,
-    val messageSeller: String
+    val messageSeller: String,
+    val shakePhone: String,
+    val noPhoneNumber: String
 )
 
 val PolishStrings = AppStrings(
@@ -231,7 +233,9 @@ val PolishStrings = AppStrings(
     addListingGeocodingWarning = "Dodano bez lokalizacji na mapie",
     phoneNumber = "Numer telefonu",
     callSeller = "Zadzwoń",
-    messageSeller = "Wyślij SMS"
+    messageSeller = "Wyślij SMS",
+    shakePhone = "Potrząśnij telefonem, aby odkryć kontakt",
+    noPhoneNumber = "Brak numeru telefonu w ogłoszeniu"
 )
 
 val EnglishStrings = AppStrings(
@@ -348,5 +352,7 @@ val EnglishStrings = AppStrings(
     addListingGeocodingWarning = "Added without map location",
     phoneNumber = "Phone number",
     callSeller = "Call",
-    messageSeller = "Send SMS"
+    messageSeller = "Send SMS",
+    shakePhone = "Shake your phone to reveal contact information",
+    noPhoneNumber = "There is no phone number provided in the listing"
 )
