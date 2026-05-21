@@ -114,6 +114,20 @@ fun AdDetailScreen(
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop
                 )
+            } } else {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(250.dp)
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.DirectionsCar,
+                    contentDescription = null,
+                    modifier = Modifier.size(80.dp),
+                    tint = Color.Gray
+                )
             }
         }
 
@@ -165,7 +179,12 @@ fun AdDetailScreen(
 
             if (seller.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(24.dp))
-                Text(strings.seller, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                Text(
+                    text = strings.seller,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 18.sp,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
                 Spacer(modifier = Modifier.height(8.dp))
                 Row(
                     modifier = Modifier
@@ -174,9 +193,19 @@ fun AdDetailScreen(
                         .padding(12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(Icons.Default.AccountCircle, contentDescription = null, modifier = Modifier.size(40.dp))
+                    Icon(
+                        Icons.Default.AccountCircle,
+                        contentDescription = null,
+                        modifier = Modifier.size(40.dp),
+                        tint = MaterialTheme.colorScheme.onSurface
+                    )
                     Spacer(modifier = Modifier.width(12.dp))
-                    Text(text = seller, fontSize = 16.sp, fontWeight = FontWeight.Medium)
+                    Text(
+                        text = seller,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
                 }
             }
 
@@ -210,7 +239,10 @@ fun AdDetailScreen(
                                 } catch (_: Exception) { }
                             },
                             modifier = Modifier.weight(1f).height(55.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                            ),
                             shape = RoundedCornerShape(14.dp)
                         ) {
                             Icon(Icons.Default.Message, contentDescription = null)
@@ -223,7 +255,6 @@ fun AdDetailScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .background(BrandGold.copy(alpha = 0.1f), RoundedCornerShape(12.dp))
-                            .clickable { isContactVisible = true }
                             .padding(16.dp),
                         contentAlignment = Alignment.Center
                     ) {
@@ -239,13 +270,13 @@ fun AdDetailScreen(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(Color.LightGray.copy(alpha = 0.1f), RoundedCornerShape(12.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), RoundedCornerShape(12.dp))
                         .padding(16.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
                         text = strings.noPhoneNumber,
-                        color = Color.Gray,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontSize = 14.sp
                     )
                 }
@@ -261,7 +292,7 @@ fun SpecItem(icon: ImageVector, title: String, subtitle: String, modifier: Modif
         Icon(icon, contentDescription = null, tint = Color.Gray, modifier = Modifier.size(24.dp))
         Spacer(modifier = Modifier.width(8.dp))
         Column {
-            Text(text = title, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+            Text(text = title, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurface)
             Text(text = subtitle, fontSize = 12.sp, color = Color.Gray)
         }
     }
