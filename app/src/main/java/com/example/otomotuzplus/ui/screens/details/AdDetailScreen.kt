@@ -228,7 +228,7 @@ fun AdDetailScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = "Potrząśnij telefonem, aby odkryć kontakt",
+                            text = strings.shakePhone,
                             color = BrandGold,
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Bold
@@ -244,7 +244,7 @@ fun AdDetailScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "Brak numeru telefonu w ogłoszeniu",
+                        text = strings.noPhoneNumber,
                         color = Color.Gray,
                         fontSize = 14.sp
                     )
