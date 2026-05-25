@@ -120,7 +120,9 @@ data class AppStrings(
     val dealNotificationDescription: String,
     val enable: String,
     val maybeLater: String,
-    val newOffers: String
+    val newOffers: String,
+    val shakePhone: String,
+    val noPhoneNumber: String
 )
 
 val PolishStrings = AppStrings(
@@ -243,7 +245,9 @@ val PolishStrings = AppStrings(
     addListingGeocodingWarning = "Dodano bez lokalizacji na mapie",
     phoneNumber = "Numer telefonu",
     callSeller = "Zadzwoń",
-    messageSeller = "Wyślij SMS"
+    messageSeller = "Wyślij SMS",
+    shakePhone = "Potrząśnij telefonem, aby odkryć kontakt",
+    noPhoneNumber = "Brak numeru telefonu w ogłoszeniu"
 )
 
 val EnglishStrings = AppStrings(
@@ -366,5 +370,7 @@ val EnglishStrings = AppStrings(
     dealNotificationDescription = "Missing out on the best deals? Turn on the notifications!",
     enable = "Enable",
     maybeLater = "Maybe later",
-    newOffers = "New offers"
+    newOffers = "New offers",
+    shakePhone = "Shake your phone to reveal contact information",
+    noPhoneNumber = "There is no phone number provided in the listing"
 )
