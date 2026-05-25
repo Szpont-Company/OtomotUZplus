@@ -3,9 +3,6 @@
 package com.example.otomotuzplus
 
 import android.Manifest
-import android.app.NotificationChannel
-import android.app.NotificationManager
-import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
@@ -46,7 +43,6 @@ import com.example.otomotuzplus.utils.NotificationHelper
 import com.google.firebase.messaging.FirebaseMessaging
 
 class MainActivity : ComponentActivity() {
-
     private val requestPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { isGranted: Boolean -> hasNotificationPermission = isGranted }
@@ -67,9 +63,7 @@ class MainActivity : ComponentActivity() {
         }
 
         NotificationHelper.createNotificationChannel(this, strings)
-        createNotificationChannel()
         enableEdgeToEdge()
-
         setContent {
             var themeMode by remember { mutableStateOf(prefManager.getThemeMode()) }
             var currentLanguage by remember { mutableStateOf(prefManager.getLanguage()) }
@@ -125,22 +119,6 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
-
-    private fun createNotificationChannel() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channelId = "offers_channel"
-            val name = "Nowe Oferty"
-            val descriptionText = "Powiadomienia o nowych autach i promocjach"
-            val importance = NotificationManager.IMPORTANCE_DEFAULT
-            val channel = NotificationChannel(channelId, name, importance).apply {
-                description = descriptionText
-            }
-
-            val notificationManager: NotificationManager =
-                getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-            notificationManager.createNotificationChannel(channel)
-        }
-    }
 }
 
 @Composable
@@ -186,7 +164,6 @@ fun OtomotUZplusApp(
             }
         }
     }
-
     var showRationaleDialog by rememberSaveable { mutableStateOf(false) }
 
     fun openSearch(query: String? = null, brand: String? = null, showFilters: Boolean? = false) {
@@ -210,12 +187,10 @@ fun OtomotUZplusApp(
 
     if (shouldShowDialog) {
         LaunchedEffect(Unit) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                val permission = Manifest.permission.POST_NOTIFICATIONS
-                val isGranted = ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED
-                if (!isGranted) {
-                    showRationaleDialog = true
-                }
+            val permission = Manifest.permission.POST_NOTIFICATIONS
+            val isGranted = ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED
+            if (!isGranted) {
+                showRationaleDialog = true
             }
         }
 
@@ -225,12 +200,8 @@ fun OtomotUZplusApp(
                 icon = { Icon(Icons.Filled.Notifications, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
                 title = { Text(text = strings.dealNotification, style = MaterialTheme.typography.headlineSmall) },
                 text = { Text(text = strings.dealNotificationDescription, style = MaterialTheme.typography.bodyMedium) },
-                confirmButton = {
-                    Button(onClick = { onRequestNotificationPermission() }) { Text(strings.enable) }
-                },
-                dismissButton = {
-                    TextButton(onClick = { onSetNotificationsRefused(true) }) { Text(strings.maybeLater) }
-                }
+                confirmButton = { Button(onClick = { onRequestNotificationPermission() }) { Text(strings.enable) } },
+                dismissButton = { TextButton(onClick = { onSetNotificationsRefused(true) }) { Text(strings.maybeLater) } }
             )
         }
     }
