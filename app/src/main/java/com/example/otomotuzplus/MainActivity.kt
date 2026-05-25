@@ -2,12 +2,19 @@
 
 package com.example.otomotuzplus
 
+import android.Manifest
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.content.Context
 import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
@@ -20,9 +27,11 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.ContextCompat
+import com.example.otomotuzplus.data.FirebaseRepository
 import com.example.otomotuzplus.data.PreferenceManager
 import com.example.otomotuzplus.data.ThemeMode
-import com.example.otomotuzplus.ui.components.PlaceholderScreen
 import com.example.otomotuzplus.ui.models.EnglishStrings
 import com.example.otomotuzplus.ui.models.PolishStrings
 import com.example.otomotuzplus.ui.navigation.AppDestinations
@@ -33,22 +42,18 @@ import com.example.otomotuzplus.ui.screens.profile.ProfileScreen
 import com.example.otomotuzplus.ui.screens.search.SearchScreen
 import com.example.otomotuzplus.ui.screens.settings.SettingsScreen
 import com.example.otomotuzplus.ui.theme.OtomotUZplusTheme
-import android.Manifest
-import android.app.NotificationChannel
-import android.app.NotificationManager
-import android.content.Context
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.core.content.ContextCompat
-import android.os.Build
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.unit.dp
 import com.example.otomotuzplus.utils.NotificationHelper
+import com.google.firebase.messaging.FirebaseMessaging
 
 class MainActivity : ComponentActivity() {
+
     private val requestPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { isGranted: Boolean -> hasNotificationPermission = isGranted }
+
+    private val repository = FirebaseRepository()
     private var hasNotificationPermission by mutableStateOf(false)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val prefManager = PreferenceManager(this)
@@ -62,7 +67,9 @@ class MainActivity : ComponentActivity() {
         }
 
         NotificationHelper.createNotificationChannel(this, strings)
+        createNotificationChannel()
         enableEdgeToEdge()
+
         setContent {
             var themeMode by remember { mutableStateOf(prefManager.getThemeMode()) }
             var currentLanguage by remember { mutableStateOf(prefManager.getLanguage()) }
@@ -76,6 +83,7 @@ class MainActivity : ComponentActivity() {
 
             OtomotUZplusTheme(darkTheme = darkTheme) {
                 OtomotUZplusApp(
+                    repository = repository,
                     themeMode = themeMode,
                     onThemeChange = {
                         themeMode = it
@@ -100,13 +108,24 @@ class MainActivity : ComponentActivity() {
                 )
             }
         }
-    }
-    private val requestPermissionLauncher = registerForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { isGranted: Boolean ->
-        if (isGranted) {
+
+        FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
+            if (!task.isSuccessful) {
+                Log.w("FCM", "Pobieranie tokenu nie powiodło się", task.exception)
+                return@addOnCompleteListener
+            }
+            val token = task.result
+            Log.d("FCM", "Twój token FCM to: $token")
+
+            val currentUserId = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid
+            if (currentUserId != null) {
+                repository.updateFcmToken(currentUserId, token)
+            } else {
+                repository.updateFcmToken("unauthenticated_device", token)
+            }
         }
     }
+
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channelId = "offers_channel"
@@ -126,6 +145,7 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun OtomotUZplusApp(
+    repository: FirebaseRepository,
     themeMode: ThemeMode,
     onThemeChange: (ThemeMode) -> Unit,
     currentLanguage: String,
@@ -137,7 +157,7 @@ fun OtomotUZplusApp(
 ) {
     val strings = if (currentLanguage == "Polski") PolishStrings else EnglishStrings
     val context = LocalContext.current
-    val repository = remember { com.example.otomotuzplus.data.FirebaseRepository() }
+
     val shouldShowDialog = !notificationsPermissionGranted && !notificationsRefused &&
             Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
     var currentDestination by rememberSaveable { mutableStateOf(AppDestinations.HOME) }
@@ -156,12 +176,17 @@ fun OtomotUZplusApp(
     }
 
     val toggleFavorite: (String) -> Unit = { key ->
-        favoriteCars = if (favoriteCars.contains(key)) {
-            favoriteCars - key
+        if (favoriteCars.contains(key)) {
+            favoriteCars = favoriteCars - key
         } else {
-            favoriteCars + key
+            favoriteCars = favoriteCars + key
+            val likedCar = allCarsFromDb.find { it.id == key }
+            if (likedCar != null && likedCar.sellerId.isNotEmpty()) {
+                repository.sendLikeNotification(context, likedCar.sellerId, likedCar.title)
+            }
         }
     }
+
     var showRationaleDialog by rememberSaveable { mutableStateOf(false) }
 
     fun openSearch(query: String? = null, brand: String? = null, showFilters: Boolean? = false) {
@@ -184,35 +209,32 @@ fun OtomotUZplusApp(
     }
 
     if (shouldShowDialog) {
-    LaunchedEffect(Unit) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            val permission = Manifest.permission.POST_NOTIFICATIONS
-            val isGranted = ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED
-
-            if (!isGranted) {
-                showRationaleDialog = true
+        LaunchedEffect(Unit) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                val permission = Manifest.permission.POST_NOTIFICATIONS
+                val isGranted = ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED
+                if (!isGranted) {
+                    showRationaleDialog = true
+                }
             }
+        }
+
+        if (showRationaleDialog) {
+            AlertDialog(
+                onDismissRequest = { },
+                icon = { Icon(Icons.Filled.Notifications, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
+                title = { Text(text = strings.dealNotification, style = MaterialTheme.typography.headlineSmall) },
+                text = { Text(text = strings.dealNotificationDescription, style = MaterialTheme.typography.bodyMedium) },
+                confirmButton = {
+                    Button(onClick = { onRequestNotificationPermission() }) { Text(strings.enable) }
+                },
+                dismissButton = {
+                    TextButton(onClick = { onSetNotificationsRefused(true) }) { Text(strings.maybeLater) }
+                }
+            )
         }
     }
 
-    if (showRationaleDialog) {
-        AlertDialog(
-            onDismissRequest = {  },
-            icon = { Icon(Icons.Filled.Notifications, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
-            title = { Text(text = "${strings.dealNotification}", style = MaterialTheme.typography.headlineSmall) },
-            text = { Text(text = "${strings.dealNotificationDescription}", style = MaterialTheme.typography.bodyMedium) },
-            confirmButton = {
-                Button(onClick = {
-                    onRequestNotificationPermission()
-                }) { Text("${strings.enable}") }
-            },
-            dismissButton = {
-                TextButton(onClick = {
-                    onSetNotificationsRefused(true)
-                }) { Text("${strings.maybeLater}") }
-            }
-        )
-    }
     val navItems = listOf(
         NavigationItem(AppDestinations.HOME, strings.home, Icons.Filled.Home, Icons.Outlined.Home),
         NavigationItem(AppDestinations.SEARCH, strings.search, Icons.Filled.Search, Icons.Outlined.Search),
@@ -242,8 +264,7 @@ fun OtomotUZplusApp(
             strings = strings,
             onBackClick = { selectedCar = null }
         )
-    }
-    else if (showSettings) {
+    } else if (showSettings) {
         SettingsScreen(
             onBack = { showSettings = false },
             themeMode = themeMode,
@@ -289,68 +310,48 @@ fun OtomotUZplusApp(
                                     openSearch(query = submittedQuery)
                                 }
                             },
-                            onBrandSelect = { selectedBrand ->
-                                openSearch(brand = selectedBrand)
-                            },
+                            onBrandSelect = { selectedBrand -> openSearch(brand = selectedBrand) },
                             onSeeAllClick = { openSearch() },
                             onNotificationsClick = { },
                             favoriteCars = favoriteCars,
-                            onFavoriteToggle = { key ->
-                                favoriteCars = if (favoriteCars.contains(key)) {
-                                    favoriteCars - key
-                                } else {
-                                    favoriteCars + key
-                                }
-                            },
-                            onCarClick = { clickedCar ->
-                                selectedCar = clickedCar
-                            }
+                            onFavoriteToggle = toggleFavorite,
+                            onCarClick = { clickedCar -> selectedCar = clickedCar }
                         )
+
                         AppDestinations.SEARCH -> SearchScreen(
                             strings = strings,
                             initialQuery = pendingSearchQuery,
                             initialBrand = pendingSearchBrand,
                             initialShowFilters = pendingSearchShowFilters,
                             favoriteCars = favoriteCars,
-                            onFavoriteToggle = { key ->
-                                favoriteCars = if (favoriteCars.contains(key)) {
-                                    favoriteCars - key
-                                } else {
-                                    favoriteCars + key
-                                }
-                            },
+                            onFavoriteToggle = toggleFavorite,
                             onInitialFiltersConsumed = {
                                 pendingSearchQuery = null
                                 pendingSearchBrand = null
                                 pendingSearchShowFilters = null
                             },
                             allCarsFromDb = allCarsFromDb,
-                            onCarClick = { clickedCar ->
-                                selectedCar = clickedCar
-                            }
+                            onCarClick = { clickedCar -> selectedCar = clickedCar }
                         )
+
                         AppDestinations.ADD -> com.example.otomotuzplus.ui.screens.add.AddScreen(
                             strings = strings,
-                            onNavigateBack = {
-                                currentDestination = AppDestinations.HOME
-                            }
+                            onNavigateBack = { currentDestination = AppDestinations.HOME }
                         )
+
                         AppDestinations.FAVORITES -> FavoritesScreen(
                             strings = strings,
                             favoriteCars = favoriteCars,
                             onFavoriteToggle = toggleFavorite,
                             allCarsFromDb = allCarsFromDb,
-                            onCarClick = { clickedCar ->
-                                selectedCar = clickedCar
-                            }
+                            onCarClick = { clickedCar -> selectedCar = clickedCar }
                         )
+
                         AppDestinations.PROFILE -> ProfileScreen(
                             onSettingsClick = { showSettings = true },
                             strings = strings,
                             allCarsFromDb = allCarsFromDb,
-                            onCarClick = { clickedCar ->
-                                selectedCar = clickedCar
-                            }
+                            onCarClick = { clickedCar -> selectedCar = clickedCar }
                         )
                     }
                 }
