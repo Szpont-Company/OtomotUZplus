@@ -1,5 +1,20 @@
+/**
+ * @file AppStrings.kt
+ * @brief Interfejs i implementacje i18n – polskie i angielskie ciągi UI.
+ */
 package com.example.otomotuzplus.ui.models
 
+/**
+ * Wszystkie widoczne dla użytkownika ciągi znaków dla jednego języka UI.
+ *
+ * Aplikacja używa dwóch instancji singletonów — [PolishStrings] i [EnglishStrings] —
+ * wybieranych w czasie działania na podstawie języka zapisanego w
+ * [com.example.otomotuzplus.data.PreferenceManager]. Dodanie nowego ciągu
+ * wymaga dodania pola tutaj i podania wartości w **obu** singletonach.
+ *
+ * Podejście celowo omija mechanizm zasobów `res/values-XX/strings.xml` systemu Android,
+ * dzięki czemu zmiana języka działa natychmiast bez restartu Activity.
+ */
 data class AppStrings(
     val home: String,
     val search: String,

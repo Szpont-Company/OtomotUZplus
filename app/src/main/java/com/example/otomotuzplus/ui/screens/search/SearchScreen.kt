@@ -1,3 +1,7 @@
+/**
+ * @file SearchScreen.kt
+ * @brief Ekran wyszukiwania i przeglądania ogłoszeń z filtrami i widokiem mapy.
+ */
 package com.example.otomotuzplus.ui.screens.search
 
 import androidx.compose.foundation.background
@@ -72,10 +76,37 @@ import kotlin.math.pow
 import kotlin.math.sin
 import kotlin.math.sqrt
 
+/**
+ * Dostępne opcje sortowania wyników ogłoszeń pojazdów.
+ *
+ * - [NAME_ASC] / [NAME_DESC] — alfabetycznie według tytułu.
+ * - [PRICE_ASC] / [PRICE_DESC] — numerycznie według cyfr z [CarAd.priceText].
+ * - [YEAR_DESC] — najnowszy rok produkcji jako pierwszy.
+ * - [MILEAGE_ASC] — najniższy przebieg jako pierwszy.
+ */
 enum class SortOption {
     NAME_ASC, NAME_DESC, PRICE_ASC, PRICE_DESC, YEAR_DESC, MILEAGE_ASC
 }
 
+/**
+ * Niemutowalna migawka aktywnego stanu filtrów wyszukiwania.
+ *
+ * Wszystkie pola tekstowe domyślnie puste (brak zastosowanego filtra).
+ * Granice zakresów numerycznych przechowywane jako ciągi, aby zachować
+ * surowe dane wejściowe użytkownika podczas edycji pola tekstowego.
+ *
+ * @property brand        Filtr podciągu nazwy marki (bez rozróżniania wielkości liter).
+ * @property modelQuery   Filtr podciągu nazwy modelu.
+ * @property minPrice     Dolna granica ceny (tylko cyfry).
+ * @property maxPrice     Górna granica ceny (tylko cyfry).
+ * @property minYear      Minimalny rok produkcji (czterocyfrowy ciąg).
+ * @property maxYear      Maksymalny rok produkcji (czterocyfrowy ciąg).
+ * @property maxMileage   Maksymalny przebieg (tylko cyfry).
+ * @property fuelType     Wybrany ciąg wyświetlania rodzaju paliwa lub `null` jeśli bez filtra.
+ * @property transmission Wybrany ciąg wyświetlania skrzyni biegów lub `null` jeśli bez filtra.
+ * @property location     Nazwa miasta używana do filtrowania geolokalizacyjnego.
+ * @property radiusKm     Promień wyszukiwania w kilometrach; `null` oznacza tylko dopasowanie tekstowe.
+ */
 data class SearchFilters(
     val brand: String? = null,
     val modelQuery: String = "",
@@ -96,6 +127,31 @@ private enum class ActiveFilterKey {
 
 private data class ActiveFilterItem(val key: ActiveFilterKey, val label: String)
 
+/**
+ * Ekran wyszukiwania/przeglądania wyświetlany gdy wybrano [AppDestinations.SEARCH].
+ *
+ * Funkcje:
+ * - Wyszukiwanie tekstowe w czasie rzeczywistym z odłożonym rozwiązywaniem geo dla filtrów promienia miasta.
+ * - Rozwijana [FiltersCard] z filtrami: marka, model, zakres cen, zakres roku, przebieg,
+ *   rodzaj paliwa, skrzynia biegów i promień geo.
+ * - Chipy aktywnych filtrów z możliwością indywidualnego usunięcia.
+ * - Sortowalna lista wyników ([SortOption]).
+ * - Przełączanie między widokiem listy a [CarMapView] (mapa OSM z [CarClusterOverlay]).
+ *
+ * Początkowe filtry (ustawione przez głębokie linki z ekranu Home) konsumowane raz przez
+ * [onInitialFiltersConsumed], więc nie są ponownie stosowane przy kolejnych rekompozycjach.
+ *
+ * @param strings                   Aktywna instancja [AppStrings] do lokalizacji.
+ * @param modifier                  Opcjonalny zewnętrzny [Modifier].
+ * @param initialQuery              Wstępnie wypełnione zapytanie tekstowe lub `null`.
+ * @param initialBrand              Wstępnie wybrany filtr marki lub `null`.
+ * @param initialShowFilters        Czy natychmiast otworzyć panel filtrów.
+ * @param favoriteCars              Klucze ulubionych samochodów od rodzica.
+ * @param onFavoriteToggle          Callback do przełączania ulubionych.
+ * @param allCarsFromDb             Pełna lista [CarAd] na żywo z Firestore.
+ * @param onCarClick                Callback z klikniętym [CarAd] do otwarcia szczegółów.
+ * @param onInitialFiltersConsumed  Wywoływany raz po zastosowaniu początkowych filtrów.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SearchScreen(

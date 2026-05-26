@@ -1,3 +1,7 @@
+/**
+ * @file ProfileScreen.kt
+ * @brief Ekran profilu użytkownika z zakładkami Moje ogłoszenia i Historia.
+ */
 package com.example.otomotuzplus.ui.screens.profile
 
 import androidx.compose.foundation.background
@@ -27,6 +31,24 @@ import java.util.Calendar
 import coil.compose.AsyncImage
 import androidx.compose.ui.layout.ContentScale
 
+/**
+ * Ekran profilu użytkownika wyświetlający informacje o koncie i własne ogłoszenia sprzedawcy.
+ *
+ * Odczytuje aktualnie zalogowanego użytkownika z [FirebaseAuth] w celu uzyskania adresu
+ * e-mail i roku założenia konta. Filtruje [allCarsFromDb] wg `car.sellerId == userEmail`
+ * aby wypełnić zakładkę "Moje ogłoszenia".
+ *
+ * Dostępne są dwie zakładki: "Moje ogłoszenia" ([MyListingsSection]) i "Historia"
+ * (placeholder — zawsze pusta).
+ *
+ * Ikona ustawień w nagłówku nawiguje do
+ * [com.example.otomotuzplus.ui.screens.settings.SettingsScreen] przez [onSettingsClick].
+ *
+ * @param onSettingsClick Callback otwierający nakładkę ustawień.
+ * @param strings         Aktywne [AppStrings] dla zlokalizowanych etykiet.
+ * @param allCarsFromDb   Pełna bieżąca lista obiektów [CarAd] z Firestore.
+ * @param onCarClick      Callback z dotkniętym [CarAd] otwierający ekran szczegółów.
+ */
 @Composable
 fun ProfileScreen(
     onSettingsClick: () -> Unit,
@@ -151,6 +173,16 @@ fun ProfileScreen(
     }
 }
 
+/**
+ * Treść zakładki "Moje ogłoszenia" wewnątrz [ProfileScreen].
+ *
+ * Renderuje [LazyColumn] kart [CarListingCard], lub komunikat pustego stanu gdy
+ * użytkownik nie ma żadnych ogłoszeń.
+ *
+ * @param strings    Aktywne [AppStrings] dla zlokalizowanych etykiet.
+ * @param myCars     Ogłoszenia należące do bieżącego użytkownika.
+ * @param onCarClick Callback z dotkniętym [CarAd] otwierający ekran szczegółów.
+ */
 @Composable
 fun MyListingsSection(strings: AppStrings, myCars: List<CarAd>, onCarClick: (CarAd) -> Unit) {
     if (myCars.isEmpty()) {
@@ -170,6 +202,16 @@ fun MyListingsSection(strings: AppStrings, myCars: List<CarAd>, onCarClick: (Car
     }
 }
 
+/**
+ * Zwarta karta używana w zakładce "Moje ogłoszenia".
+ *
+ * Wyświetla miniaturę zdjęcia (lub ikonę zastępczą), cenę, tytuł, linię specyfikacji
+ * rok + przebieg oraz odznakę statusu "Aktywne".
+ *
+ * @param car      Obiekt [CarAd] do reprezentowania.
+ * @param strings  Aktywne [AppStrings] dla zlokalizowanych przyrostków jednostek i etykiet.
+ * @param onClick  Callback wywoływany po dotknięciu karty.
+ */
 @Composable
 fun CarListingCard(car: CarAd, strings: AppStrings, onClick: () -> Unit) {
     val title = car.title.trim()

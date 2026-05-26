@@ -1,3 +1,7 @@
+/**
+ * @file SettingsScreen.kt
+ * @brief Ekran ustawień: motyw, język, powiadomienia i wylogowanie.
+ */
 package com.example.otomotuzplus.ui.screens.settings
 
 import android.content.Intent
@@ -22,6 +26,26 @@ import com.example.otomotuzplus.utils.NotificationHelper
 import com.google.firebase.auth.FirebaseAuth
 import com.example.otomotuzplus.ui.components.AdmobBanner
 
+/**
+ * Ekran ustawień dostępny z [ProfileScreen].
+ *
+ * Oferuje:
+ * - **Motyw** — otwiera [AlertDialog] do wyboru [ThemeMode.LIGHT], [ThemeMode.DARK]
+ *   lub [ThemeMode.SYSTEM].
+ * - **Język** — otwiera [AlertDialog] do wyboru `"Polski"` lub `"English"`.
+ * - **Powiadomienia** — przechodzi do ustawień powiadomień systemu dla tej aplikacji.
+ * - **Wyślij testowe powiadomienie** — natychmiast wysyła lokalne powiadomienie dla QA.
+ * - **Wyloguj** — wylogowuje przez [FirebaseAuth] i nawiguje z powrotem do [LoginActivity].
+ *
+ * [AdmobBanner] jest umieszczony na dole obszaru treści nad przyciskiem wylogowania.
+ *
+ * @param onBack           Callback zamykający ten ekran i wracający do [ProfileScreen].
+ * @param themeMode        Aktualnie aktywny [ThemeMode].
+ * @param onThemeChange    Callback do utrwalenia i zastosowania nowego [ThemeMode].
+ * @param currentLanguage  Aktualnie aktywny identyfikator języka.
+ * @param onLanguageChange Callback do utrwalenia i zastosowania nowego języka.
+ * @param strings          Aktywne [AppStrings] dla zlokalizowanych etykiet.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(

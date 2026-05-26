@@ -1,3 +1,7 @@
+/**
+ * @file HomeScreen.kt
+ * @brief Ekran główny – karuzela marek i lista najnowszych ogłoszeń.
+ */
 package com.example.otomotuzplus.ui.screens.home
 
 import androidx.compose.foundation.background
@@ -69,6 +73,30 @@ import com.example.otomotuzplus.ui.theme.DarkSlate800
 import com.example.otomotuzplus.ui.theme.Slate400
 import com.example.otomotuzplus.ui.components.AdmobBanner
 
+/**
+ * Ekran główny wyświetlany gdy wybrano [AppDestinations.HOME].
+ *
+ * Wyświetla kolejno:
+ * 1. [ScreenHeader] z przyciskiem ikony powiadomień.
+ * 2. Pasek wyszukiwania tekstowego przesyłany przez akcję IME "Szukaj".
+ * 3. Dwa [ActionTile]: "Kup" (nawiguje do Szukaj) i "Sprzedaj" (nawiguje do Dodaj).
+ * 4. Poziomy przewijany rząd [BrandPlaceholderTile] do szybkiego filtrowania marki.
+ * 5. Pionowa lista [ListingCard] załadowanych z Firestore, z [AdmobBanner]
+ *    wstawianym po każdej trzeciej karcie.
+ *
+ * @param strings             Aktywna instancja [AppStrings] do lokalizacji.
+ * @param carsFromDb          Lista ogłoszeń [CarAd] na żywo z Firestore.
+ * @param modifier            Opcjonalny zewnętrzny [Modifier].
+ * @param onNavigateToSearch  Callback do otwarcia zakładki Szukaj bez filtrów.
+ * @param onNavigateToAdd     Callback do otwarcia zakładki Dodaj.
+ * @param onSearchSubmit      Callback z przesłanym ciągiem zapytania.
+ * @param onBrandSelect       Callback z nazwą marki gdy kliknięto kafelek marki.
+ * @param onSeeAllClick       Callback dla przycisku "Zobacz wszystko" w sekcji marek.
+ * @param onNotificationsClick Callback dla przycisku ikony powiadomień.
+ * @param favoriteCars        Zestaw kluczy ulubionych samochodów przechowywany przez rodzica.
+ * @param onFavoriteToggle    Callback do przełączania stanu ulubionych samochodu.
+ * @param onCarClick          Callback z klikniętym [CarAd] do otwarcia [AdDetailScreen].
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(

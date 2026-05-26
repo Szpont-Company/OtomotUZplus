@@ -1,3 +1,7 @@
+/**
+ * @file AddScreen.kt
+ * @brief Ekran tworzenia nowego ogłoszenia pojazdu z geokodowaniem i przesyłaniem zdjęć.
+ */
 package com.example.otomotuzplus.ui.screens.add
 
 import android.widget.Toast
@@ -40,6 +44,28 @@ import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.ui.draw.clip
 import coil.compose.AsyncImage
 
+/**
+ * Ekran tworzenia nowego ogłoszenia pojazdu.
+ *
+ * ## Pola formularza
+ * Marka i model, cena, rok, przebieg, miasto, kod pocztowy, rodzaj paliwa (grupa przycisków),
+ * skrzynia biegów (grupa przycisków), pojemność silnika, moc, numer telefonu.
+ *
+ * ## Dodawanie zdjęć
+ * Zdjęcia są wybierane z galerii systemowej (do 5) lub wykonywane aparatem
+ * urządzenia przez plik tymczasowy [FileProvider]. Miniatury są wyświetlane
+ * w poziomym wierszu z przyciskiem usunięcia na każdej.
+ *
+ * ## Przebieg wysyłania
+ * 1. Waliduje wymagane pola (tytuł i cena) oraz format kodu pocztowego.
+ * 2. Geokoduje kod pocztowy przez [geocodePostalCode] (korutyna na dyspozytorze IO).
+ * 3. Przesyła wybrane zdjęcia równolegle przez [FirebaseRepository.uploadImages].
+ * 4. Zapisuje dokument [CarAd] przez [FirebaseRepository.addCar].
+ * 5. Wyświetla Toast i wywołuje [onNavigateBack] po sukcesie.
+ *
+ * @param strings        Aktywne [AppStrings] dla zlokalizowanych etykiet.
+ * @param onNavigateBack Callback wywoływany po pomyślnym przesłaniu lub anulowaniu.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddScreen(
@@ -458,6 +484,17 @@ private fun customTextFieldColors() = OutlinedTextFieldDefaults.colors(
     unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
     cursorColor = BrandGold
 )
+/**
+ * Tworzy plik tymczasowy i zwraca URI [FileProvider] odpowiedni do
+ * przekazania do `ActivityResultContracts.TakePicture`.
+ *
+ * Plik jest tworzony w [Context.externalCacheDir] i oznaczony do usunięcia
+ * przy zamknięciu JVM. Po zapisaniu przez aplikację aparatu URI jest dodawane
+ * do listy `selectedImageUris` wewnątrz [AddScreen].
+ *
+ * @param context Kontekst Activity lub aplikacji.
+ * @return URI `content://` obsługiwane przez FileProvider `com.example.otomotuzplus.provider`.
+ */
 fun createTempImageUri(context: android.content.Context): Uri {
     val tempFile = File.createTempFile("temp_car_image_", ".jpg", context.externalCacheDir).apply {
         createNewFile()

@@ -1,3 +1,7 @@
+/**
+ * @file RegisterActivity.kt
+ * @brief Ekran rejestracji nowego konta użytkownika przez Firebase Auth.
+ */
 package com.example.otomotuzplus
 
 import android.content.Intent
@@ -9,6 +13,18 @@ import androidx.appcompat.app.AppCompatActivity
 import com.google.android.material.textfield.TextInputEditText
 import com.google.firebase.auth.FirebaseAuth
 
+/**
+ * Activity obsługująca tworzenie nowych kont przez Firebase Auth.
+ *
+ * Sprawdza czy:
+ * - Wszystkie trzy pola (e-mail, hasło, powtórz hasło) są niepuste.
+ * - Oba pola hasła są zgodne.
+ * - Hasło ma co najmniej 6 znaków.
+ *
+ * Po sukcesie nawiguje bezpośrednio do [MainActivity], czyszcząc stos back.
+ * Kliknięcie linku "przejdź do logowania" wywołuje `finish()` aby wrócić do
+ * [LoginActivity].
+ */
 class RegisterActivity : AppCompatActivity() {
 
     private lateinit var auth: FirebaseAuth

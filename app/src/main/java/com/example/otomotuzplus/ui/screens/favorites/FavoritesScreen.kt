@@ -1,3 +1,7 @@
+/**
+ * @file FavoritesScreen.kt
+ * @brief Ekran ulubionych ogłoszeń filtrowanych z bazy Firestore.
+ */
 package com.example.otomotuzplus.ui.screens.favorites
 
 import androidx.compose.foundation.background
@@ -28,6 +32,22 @@ import com.example.otomotuzplus.ui.models.localizeFuelType
 import com.example.otomotuzplus.ui.models.localizeGearboxType
 import com.example.otomotuzplus.ui.theme.Slate400
 
+/**
+ * Ekran wyświetlający ogłoszenia pojazdów oznaczone przez użytkownika jako ulubione.
+ *
+ * Stan ulubionych jest zarządzany w [OtomotUZplusApp] jako [List] kluczy złożonych
+ * w formacie `"<documentId>|<title>"`. Ekran filtruje [allCarsFromDb] względem tych kluczy
+ * i renderuje [ListingCard] dla każdego dopasowania.
+ *
+ * Karta pustego stanu jest wyświetlana gdy brak ulubionych.
+ *
+ * @param strings          Aktywne [AppStrings] dla zlokalizowanych etykiet.
+ * @param favoriteCars     Lista kluczy ulubionych samochodów z rodzica.
+ * @param onFavoriteToggle Callback do usunięcia samochodu z ulubionych.
+ * @param allCarsFromDb    Pełna bieżąca lista obiektów [CarAd] z Firestore.
+ * @param onCarClick       Callback z dotkniętym [CarAd] otwierający ekran szczegółów.
+ * @param modifier         Opcjonalny zewnętrzny [Modifier].
+ */
 @Composable
 fun FavoritesScreen(
     strings: AppStrings,

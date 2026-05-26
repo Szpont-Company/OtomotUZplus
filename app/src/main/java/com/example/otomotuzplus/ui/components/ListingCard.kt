@@ -1,3 +1,7 @@
+/**
+ * @file ListingCard.kt
+ * @brief Karta ogłoszenia pojazdu używana na ekranach Home, Search i Favorites.
+ */
 package com.example.otomotuzplus.ui.components
 
 import androidx.compose.foundation.background
@@ -32,6 +36,25 @@ import com.example.otomotuzplus.ui.theme.Slate400
 import coil.compose.AsyncImage
 import androidx.compose.ui.layout.ContentScale
 
+/**
+ * Model widoku dla pojedynczej karty ogłoszenia.
+ *
+ * Wszystkie pola tekstowe powinny już zawierać sufiksy jednostek
+ * (np. `"98 400 km"`, `"19 000 zł"`), ponieważ sufiks rozwiązywany jest
+ * z [AppStrings] przed zbudowaniem karty.
+ *
+ * @property title        Tytuł ogłoszenia (np. "Opel Corsa 1.2").
+ * @property year         Ciąg roku produkcji.
+ * @property mileageText  Przebieg z sufiksem jednostki.
+ * @property fuelText     Zlokalizowana etykieta rodzaju paliwa.
+ * @property bodyTypeText Zlokalizowana etykieta skrzyni biegów (ponownie użyta w układzie karty).
+ * @property driveTypeText Ciąg pojemności silnika z sufiksem jednostki (ponownie użyty).
+ * @property locationText Czytelna nazwa miasta lub obszaru.
+ * @property priceText    Cena z sufiksem waluty.
+ * @property isFavorite   Czy bieżący użytkownik dodał ogłoszenie do ulubionych.
+ * @property onFavoriteClick Callback wywoływany gdy użytkownik kliknie ikonę serduszka.
+ * @property coverImageUrl Opcjonalny URL Firebase Storage dla pierwszego zdjęcia ogłoszenia.
+ */
 data class ListingCardData(
     val title: String,
     val year: String,
@@ -46,6 +69,15 @@ data class ListingCardData(
     val coverImageUrl: String? = null
 )
 
+/**
+ * Karta Material3 wyświetlająca skrócone podsumowanie ogłoszenia pojazdu.
+ *
+ * Karta pokazuje zdjęcie okładki (lub tło zastępcze), przycisk przełącznika
+ * ulubionych w prawym górnym rogu i dwa wiersze metadanych pod tytułem.
+ *
+ * @param item     Dane ogłoszenia do wyświetlenia.
+ * @param modifier Opcjonalny [Modifier] stosowany do zewnętrznej [Card].
+ */
 @Composable
 fun ListingCard(
     item: ListingCardData,

@@ -1,3 +1,7 @@
+/**
+ * @file CommonComponents.kt
+ * @brief Wspólne komponenty UI: nagłówek ekranu, placeholder, element ustawień.
+ */
 package com.example.otomotuzplus.ui.components
 
 import androidx.compose.foundation.clickable
@@ -17,6 +21,17 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
+/**
+ * Wiersz nagłówka na pełną szerokość używany na górze każdego głównego ekranu.
+ *
+ * Nagłówek zawiera pogrubiony tytuł wyśrodkowany w dostępnej przestrzeni oraz
+ * opcjonalny slot końcowy (np. przyciski ikon) wyrównany do prawej krawędzi.
+ *
+ * @param title           Tekst wyświetlany jako tytuł ekranu.
+ * @param modifier        Opcjonalny [Modifier] stosowany do zewnętrznego [Row].
+ * @param trailingWidth   Stała szerokość zarezerwowana dla [trailingContent]; domyślnie 112 dp.
+ * @param trailingContent Zawartość kompozycji umieszczona w slocie końcowym (np. przyciski ikon).
+ */
 @Composable
 fun ScreenHeader(
     title: String,
@@ -51,6 +66,11 @@ fun ScreenHeader(
     }
 }
 
+/**
+ * Wyśrodkowany zastępczy tekst używany podczas tworzenia dla niezaimplementowanych ekranów.
+ *
+ * @param name Tekst do wyświetlenia na środku ekranu.
+ */
 @Composable
 fun PlaceholderScreen(name: String) {
     Column(
@@ -67,6 +87,15 @@ fun PlaceholderScreen(name: String) {
     }
 }
 
+/**
+ * Klikalny wiersz ustawień z wiodącą ikoną, tytułem i końcowym znacznikiem strzałki.
+ *
+ * Używany wyłącznie w [com.example.otomotuzplus.ui.screens.settings.SettingsScreen].
+ *
+ * @param title   Etykieta tekstowa wyświetlana w wierszu.
+ * @param icon    Wiodąca ikona wyświetlana po lewej stronie tytułu.
+ * @param onClick Callback wywoływany gdy wiersz zostanie kliknięty.
+ */
 @Composable
 fun SettingsClickItem(
     title: String,

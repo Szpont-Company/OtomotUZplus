@@ -1,3 +1,7 @@
+/**
+ * @file Theme.kt
+ * @brief Konfiguracja motywu Material3 z obsługą jasnego, ciemnego i systemowego trybu.
+ */
 package com.example.otomotuzplus.ui.theme
 
 import android.app.Activity
