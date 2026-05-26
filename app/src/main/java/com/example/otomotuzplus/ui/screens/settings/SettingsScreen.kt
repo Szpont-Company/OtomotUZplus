@@ -18,6 +18,7 @@ import com.example.otomotuzplus.LoginActivity
 import com.example.otomotuzplus.data.ThemeMode
 import com.example.otomotuzplus.ui.components.SettingsClickItem
 import com.example.otomotuzplus.ui.models.AppStrings
+import com.example.otomotuzplus.utils.NotificationHelper
 import com.google.firebase.auth.FirebaseAuth
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -153,10 +154,14 @@ fun SettingsScreen(
             )
 
             SettingsClickItem(
-                title = "Wyślij testowe powiadomienie",
+                title = strings.dealTestNotification,
                 icon = Icons.Default.BugReport,
                 onClick = {
-                    com.example.otomotuzplus.utils.NotificationHelper.sendTestNotification(context, strings)
+                    NotificationHelper.sendNotification(
+                        context,
+                        strings.dealNotification,
+                        strings.dealNotificationDescription
+                    )
                 }
             )
 

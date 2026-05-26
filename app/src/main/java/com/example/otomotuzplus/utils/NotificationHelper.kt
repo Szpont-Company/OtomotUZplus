@@ -14,19 +14,17 @@ object NotificationHelper {
     const val CHANNEL_ID = "offers_channel"
 
     fun createNotificationChannel(context: Context, strings: AppStrings) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val name = strings.newOffers
-            val descriptionText = "Powiadomienia z aplikacji OtomotUZplus"
-            val importance = NotificationManager.IMPORTANCE_DEFAULT
-            val channel = NotificationChannel(CHANNEL_ID, name, importance).apply {
-                description = descriptionText
-            }
-            val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-            notificationManager.createNotificationChannel(channel)
+        val name = strings.newOffers
+        val descriptionText = "Powiadomienia z aplikacji OtomotUZplus"
+        val importance = NotificationManager.IMPORTANCE_DEFAULT
+        val channel = NotificationChannel(CHANNEL_ID, name, importance).apply {
+            description = descriptionText
         }
+        val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        notificationManager.createNotificationChannel(channel)
     }
 
-    fun sendTestNotification(context: Context, strings: AppStrings) {
+    fun sendNotification(context: Context, title: String, message: String) {
         val intent = Intent(context, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
         }
@@ -38,14 +36,14 @@ object NotificationHelper {
 
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_launcher_foreground)
-            .setContentTitle(strings.dealNotification) // Używamy Twoich stringów
-            .setContentText(strings.dealNotificationDescription)
+            .setContentTitle(title) // Używamy przekazanego tytułu
+            .setContentText(message) // Używamy przekazanej treści
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .setAutoCancel(true)
             .setContentIntent(pendingIntent)
             .build()
 
         val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        notificationManager.notify(1001, notification)
+        notificationManager.notify(System.currentTimeMillis().toInt(), notification)
     }
 }

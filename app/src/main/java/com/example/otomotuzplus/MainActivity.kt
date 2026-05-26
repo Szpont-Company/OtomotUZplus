@@ -40,6 +40,8 @@ import com.example.otomotuzplus.ui.screens.search.SearchScreen
 import com.example.otomotuzplus.ui.screens.settings.SettingsScreen
 import com.example.otomotuzplus.ui.theme.OtomotUZplusTheme
 import com.example.otomotuzplus.utils.NotificationHelper
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.DocumentChange
 import com.google.firebase.messaging.FirebaseMessaging
 
 class MainActivity : ComponentActivity() {
@@ -48,6 +50,7 @@ class MainActivity : ComponentActivity() {
     ) { isGranted: Boolean -> hasNotificationPermission = isGranted }
 
     private val repository = FirebaseRepository()
+    val db = com.google.firebase.firestore.FirebaseFirestore.getInstance()
     private var hasNotificationPermission by mutableStateOf(false)
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -64,6 +67,7 @@ class MainActivity : ComponentActivity() {
 
         NotificationHelper.createNotificationChannel(this, strings)
         enableEdgeToEdge()
+
         setContent {
             var themeMode by remember { mutableStateOf(prefManager.getThemeMode()) }
             var currentLanguage by remember { mutableStateOf(prefManager.getLanguage()) }
@@ -94,9 +98,7 @@ class MainActivity : ComponentActivity() {
                         prefManager.setNotificationsRefused(refused)
                     },
                     onRequestNotificationPermission = {
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                            requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-                        }
+                        requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
                     },
                     notificationsPermissionGranted = hasNotificationPermission
                 )
@@ -105,17 +107,47 @@ class MainActivity : ComponentActivity() {
 
         FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
             if (!task.isSuccessful) {
-                Log.w("FCM", "Pobieranie tokenu nie powiodło się", task.exception)
+                Log.w("FCM_DIAG", "Pobieranie tokenu nie powiodło się", task.exception)
                 return@addOnCompleteListener
             }
             val token = task.result
-            Log.d("FCM", "Twój token FCM to: $token")
+            Log.d("FCM_DIAG", "SUKCES! Twój token FCM to: $token")
 
-            val currentUserId = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid
-            if (currentUserId != null) {
-                repository.updateFcmToken(currentUserId, token)
-            } else {
-                repository.updateFcmToken("unauthenticated_device", token)
+            try {
+                val currentUserId = FirebaseAuth.getInstance().currentUser?.uid
+                if (currentUserId != null) {
+
+                    var isInitialSnapshot = true
+
+                    db.collection("notifications")
+                        .whereEqualTo("toUser", currentUserId)
+                        .addSnapshotListener { snapshots, e ->
+                            if (e != null) {
+                                Log.w("FCM_DIAG", "Błąd nasłuchiwania powiadomień", e)
+                                return@addSnapshotListener
+                            }
+
+                            if (isInitialSnapshot) {
+                                isInitialSnapshot = false
+                                return@addSnapshotListener
+                            }
+
+                            for (dc in snapshots!!.documentChanges) {
+                                if (dc.type == DocumentChange.Type.ADDED) {
+                                    val carTitle = dc.document.getString("carTitle") ?: "Auto"
+                                    val message = strings.likeNotificationMessage.format(carTitle)
+
+                                    NotificationHelper.sendNotification(
+                                        this@MainActivity,
+                                        strings.likeNotificationTitle,
+                                        message
+                                    )
+                                }
+                            }
+                        }
+                }
+            } catch (e: Exception) {
+                Log.e("FCM_DIAG", "Blad podczas zapisu tokenu do repozytorium: ${e.message}", e)
             }
         }
     }
@@ -154,13 +186,33 @@ fun OtomotUZplusApp(
     }
 
     val toggleFavorite: (String) -> Unit = { key ->
+        Log.d("FCM_DIAG", "=== KLIKNIĘTO SERDUSZKO ===")
+        Log.d("FCM_DIAG", "Otrzymany klucz (key): $key")
+
         if (favoriteCars.contains(key)) {
+            Log.d("FCM_DIAG", "Auto było już w ulubionych -> USUWANIE z ulubionych (brak powiadomienia).")
             favoriteCars = favoriteCars - key
         } else {
+            Log.d("FCM_DIAG", "Auta nie ma w ulubionych -> DODAWANIE do ulubionych.")
             favoriteCars = favoriteCars + key
-            val likedCar = allCarsFromDb.find { it.id == key }
-            if (likedCar != null && likedCar.sellerId.isNotEmpty()) {
-                repository.sendLikeNotification(context, likedCar.sellerId, likedCar.title)
+
+            val realId = key.substringBefore("|")
+            Log.d("FCM_DIAG", "Wycięte czyste ID do bazy danych: $realId")
+            Log.d("FCM_DIAG", "Liczba aut w lokalnej pamięci podręcznej (allCarsFromDb): ${allCarsFromDb.size}")
+
+            val likedCar = allCarsFromDb.find { it.id == realId }
+            if (likedCar != null) {
+                Log.d("FCM_DIAG", "Sukces! Znaleziono auto w bazie: ${likedCar.title}")
+                Log.d("FCM_DIAG", "Wartość sellerId dla tego auta to: '${likedCar.sellerId}'")
+
+                if (likedCar.sellerId.isNotEmpty()) {
+                    Log.d("FCM_DIAG", "Próba uruchomienia repository.sendLikeNotification...")
+                    repository.sendLikeNotification(likedCar.sellerId, likedCar.title)
+                } else {
+                    Log.w("FCM_DIAG", "OSTRZEŻENIE: sellerId jest PUSTE. Nie ma dokąd wysłać powiadomienia.")
+                }
+            } else {
+                Log.w("FCM_DIAG", "BŁĄD: Mimo wycięcia ID ($realId), nadal nie ma takiego auta w allCarsFromDb.")
             }
         }
     }

@@ -119,50 +119,60 @@ class FirebaseRepository {
                 )
             }
     }
-    fun sendLikeNotification(context: android.content.Context, sellerId: String, carTitle: String) {
-        db.collection("users").document(sellerId).get()
-            .addOnSuccessListener { document ->
-                val token = document.getString("fcmToken")
-                if (!token.isNullOrEmpty()) {
-                    Thread {
-                        try {
-                            val internalTokenTask = com.google.firebase.auth.FirebaseAuth.getInstance()
-                                .getAccessToken(false)
-                            val accessToken = com.google.android.gms.tasks.Tasks.await(internalTokenTask).token
+    fun sendLikeNotification(sellerId: String, carTitle: String) {
+        val notification = hashMapOf(
+            "toUser" to sellerId,
+            "carTitle" to carTitle,
+            "timestamp" to com.google.firebase.firestore.FieldValue.serverTimestamp()
+        )
+        db.collection("notifications").add(notification)
+    }
 
-                            if (accessToken.isNullOrEmpty()) return@Thread
-                            val url = java.net.URL("https://fcm.googleapis.com/v1/projects/otomotuzplus/messages:send")
-                            val conn = url.openConnection() as java.net.HttpURLConnection
-                            conn.requestMethod = "POST"
-                            conn.setRequestProperty("Content-Type", "application/json")
-                            conn.setRequestProperty("Authorization", "Bearer $accessToken")
-                            conn.doOutput = true
-                            val jsonRequest = """
-                                {
-                                  "message": {
-                                    "token": "$token",
-                                    "data": {
-                                      "title": "Ktoś polubił Twoje ogłoszenie!",
-                                      "body": "Twoje auto $carTitle spodobało się nowemu użytkownikowi."
-                                    }
-                                  }
-                                }
-                            """.trimIndent()
+    fun proceedWithSending(token: String?, carTitle: String) {
+        if (!token.isNullOrEmpty()) {
+            Thread {
+                try {
+                    android.util.Log.d("FCM_HTTP_V1", "Uruchamiam wątek wysyłania requestu HTTP...")
+                    val internalTokenTask = com.google.firebase.auth.FirebaseAuth.getInstance()
+                        .getAccessToken(false)
+                    val accessToken = com.google.android.gms.tasks.Tasks.await(internalTokenTask).token
 
-                            conn.outputStream.use { os ->
-                                os.write(jsonRequest.toByteArray(Charsets.UTF_8))
+                    if (accessToken.isNullOrEmpty()) {
+                        android.util.Log.e("FCM_HTTP_V1", "BŁĄD: Access Token z Firebase Auth jest pusty!")
+                        return@Thread
+                    }
+
+                    val url = java.net.URL("https://fcm.googleapis.com/v1/projects/otomotuzplus/messages:send")
+                    val conn = url.openConnection() as java.net.HttpURLConnection
+                    conn.requestMethod = "POST"
+                    conn.setRequestProperty("Content-Type", "application/json")
+                    conn.setRequestProperty("Authorization", "Bearer $accessToken")
+                    conn.doOutput = true
+
+                    val jsonRequest = """
+                        {
+                          "message": {
+                            "token": "$token",
+                            "data": {
+                              "title": "Ktoś polubił Twoje ogłoszenie!",
+                              "body": "Twoje auto $carTitle spodobało się nowemu użytkownikowi."
                             }
-
-                            val responseCode = conn.responseCode
-                            android.util.Log.d("FCM_HTTP_V1", "Kod odpowiedzi HTTP: $responseCode")
-                        } catch (e: Exception) {
-                            android.util.Log.e("FCM_HTTP_V1", "Błąd wysyłania przez HTTP v1", e)
+                          }
                         }
-                    }.start()
+                    """.trimIndent()
+
+                    conn.outputStream.use { os ->
+                        os.write(jsonRequest.toByteArray(Charsets.UTF_8))
+                    }
+
+                    val responseCode = conn.responseCode
+                    android.util.Log.d("FCM_HTTP_V1", "KOD ODPOWIEDZI HTTP SERWERA GOOGLE: $responseCode")
+                } catch (e: Exception) {
+                    android.util.Log.e("FCM_HTTP_V1", "Błąd wysyłania przez HTTP v1", e)
                 }
-            }
-            .addOnFailureListener { e ->
-                android.util.Log.e("FirebaseRepository", "Błąd pobierania tokenu użytkownika", e)
-            }
+            }.start()
+        } else {
+            android.util.Log.w("FCM_HTTP_V1", "PRZERWANO: Nie udało się przypisać żadnego tokenu FCM dla tego sprzedawcy.")
+        }
     }
 }
