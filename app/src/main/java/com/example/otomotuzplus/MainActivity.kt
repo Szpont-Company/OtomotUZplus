@@ -43,6 +43,7 @@ import com.example.otomotuzplus.utils.NotificationHelper
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.DocumentChange
 import com.google.firebase.messaging.FirebaseMessaging
+import com.google.android.gms.ads.MobileAds
 
 class MainActivity : ComponentActivity() {
     private val requestPermissionLauncher = registerForActivityResult(
@@ -67,6 +68,8 @@ class MainActivity : ComponentActivity() {
 
         NotificationHelper.createNotificationChannel(this, strings)
         enableEdgeToEdge()
+
+        MobileAds.initialize(this) {}
 
         setContent {
             var themeMode by remember { mutableStateOf(prefManager.getThemeMode()) }
