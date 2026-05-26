@@ -156,7 +156,7 @@ class MainActivity : ComponentActivity() {
 
                             for (dc in snapshots!!.documentChanges) {
                                 if (dc.type == DocumentChange.Type.ADDED) {
-                                    val carTitle = dc.document.getString("carTitle") ?: "Auto"
+                                    val carTitle = dc.document.getString("carTitle") ?: strings.carFallback
                                     val message = strings.likeNotificationMessage.format(carTitle)
 
                                     NotificationHelper.sendNotification(

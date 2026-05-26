@@ -11,6 +11,9 @@ import android.content.Intent
 import androidx.core.app.NotificationCompat
 import com.example.otomotuzplus.MainActivity
 import com.example.otomotuzplus.R
+import com.example.otomotuzplus.data.PreferenceManager
+import com.example.otomotuzplus.ui.models.EnglishStrings
+import com.example.otomotuzplus.ui.models.PolishStrings
 import com.example.otomotuzplus.utils.NotificationHelper
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
@@ -30,9 +33,11 @@ import com.google.firebase.messaging.RemoteMessage
 class MyFirebaseMessagingService : FirebaseMessagingService() {
 
     override fun onMessageReceived(remoteMessage: RemoteMessage) {
+        val lang = PreferenceManager(this).getLanguage()
+        val s = if (lang == "Polski") PolishStrings else EnglishStrings
         if (remoteMessage.data.isNotEmpty()) {
             val title = remoteMessage.data["title"] ?: "OtomotUZplus"
-            val body = remoteMessage.data["body"] ?: "Sprawdź nowe zmiany!"
+            val body = remoteMessage.data["body"] ?: s.notificationNewUpdates
             sendNotification(title, body)
         }
         else {

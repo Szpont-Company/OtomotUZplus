@@ -36,7 +36,7 @@ object NotificationHelper {
      */
     fun createNotificationChannel(context: Context, strings: AppStrings) {
         val name = strings.newOffers
-        val descriptionText = "Powiadomienia z aplikacji OtomotUZplus"
+        val descriptionText = strings.notificationChannelDescription
         val importance = NotificationManager.IMPORTANCE_DEFAULT
         val channel = NotificationChannel(CHANNEL_ID, name, importance).apply {
             description = descriptionText
