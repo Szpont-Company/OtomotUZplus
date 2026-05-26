@@ -362,6 +362,7 @@ fun AddScreen(
                             repository.uploadImages(selectedImageUris) { uploadedUrls ->
                                 val currentUser = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser
                                 val sellerId = currentUser?.uid ?: "unknown"
+                                val sellerEmail = currentUser?.email ?: "Brak emaila"
                                 val newCar = CarAd(
                                     title = title,
                                     priceText = priceText,
@@ -377,6 +378,7 @@ fun AddScreen(
                                     powerText = powerText,
                                     imageUrls = uploadedUrls,
                                     sellerId = sellerId,
+                                    sellerEmail = sellerEmail,
                                     phoneNumber = phoneNumber.trim()
                                 )
                                 repository.addCar(
