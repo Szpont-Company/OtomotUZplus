@@ -19,6 +19,7 @@ constraintlayout = "2.1.4"
 firebaseMessaging = "24.0.0"
 firebaseFirestore = "25.1.1"
 osmdroid = "6.1.20"
+playServicesAds = "25.3.0"
 
 [libraries]
 androidx-compose-material-icons-extended = { module = "androidx.compose.material:material-icons-extended" }
@@ -48,6 +49,7 @@ androidx-activity = { group = "androidx.activity", name = "activity", version.re
 androidx-constraintlayout = { group = "androidx.constraintlayout", name = "constraintlayout", version.ref = "constraintlayout" }
 firebase-messaging = { group = "com.google.firebase", name = "firebase-messaging-ktx", version.ref = "firebaseMessaging" }
 osmdroid = { group = "org.osmdroid", name = "osmdroid-android", version.ref = "osmdroid" }
+play-services-ads = { module = "com.google.android.gms:play-services-ads", version.ref = "playServicesAds" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

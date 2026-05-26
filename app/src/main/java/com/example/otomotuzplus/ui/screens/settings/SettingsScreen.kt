@@ -20,6 +20,7 @@ import com.example.otomotuzplus.ui.components.SettingsClickItem
 import com.example.otomotuzplus.ui.models.AppStrings
 import com.example.otomotuzplus.utils.NotificationHelper
 import com.google.firebase.auth.FirebaseAuth
+import com.example.otomotuzplus.ui.components.AdmobBanner
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -166,6 +167,8 @@ fun SettingsScreen(
             )
 
             Spacer(modifier = Modifier.weight(1f))
+            AdmobBanner()
+            Spacer(modifier = Modifier.height(24.dp))
 
             Button(
                 onClick = {

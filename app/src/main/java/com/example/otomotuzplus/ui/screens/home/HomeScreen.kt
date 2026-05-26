@@ -67,6 +67,7 @@ import com.example.otomotuzplus.ui.models.sampleListings
 import com.example.otomotuzplus.ui.theme.BrandGold
 import com.example.otomotuzplus.ui.theme.DarkSlate800
 import com.example.otomotuzplus.ui.theme.Slate400
+import com.example.otomotuzplus.ui.components.AdmobBanner
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -214,6 +215,10 @@ fun HomeScreen(
                         onCarClick(originalCarFromDb)
                     }
             )
+            if ((index + 1) % 3 == 0) {
+                Spacer(modifier = Modifier.height(14.dp))
+                AdmobBanner(modifier = Modifier.padding(horizontal = 16.dp))
+            }
         }
 
         item {
