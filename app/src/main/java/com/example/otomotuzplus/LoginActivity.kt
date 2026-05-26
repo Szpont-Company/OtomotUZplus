@@ -10,7 +10,11 @@ import android.widget.Button
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import com.example.otomotuzplus.data.PreferenceManager
+import com.example.otomotuzplus.ui.models.EnglishStrings
+import com.example.otomotuzplus.ui.models.PolishStrings
 import com.google.android.material.textfield.TextInputEditText
+import com.google.android.material.textfield.TextInputLayout
 import com.google.firebase.auth.FirebaseAuth
 import kotlin.jvm.java
 
@@ -37,27 +41,35 @@ class LoginActivity : AppCompatActivity() {
 
         auth = FirebaseAuth.getInstance()
 
+        val lang = PreferenceManager(this).getLanguage()
+        val s = if (lang == "Polski") PolishStrings else EnglishStrings
+
         val emailET = findViewById<TextInputEditText>(R.id.emailEditText)
         val passwordET = findViewById<TextInputEditText>(R.id.passwordEditText)
         val loginBtn = findViewById<Button>(R.id.loginButton)
         val registerTV = findViewById<TextView>(R.id.goToRegisterText)
+
+        findViewById<TextInputLayout>(R.id.emailInputLayout).hint = s.emailHint
+        findViewById<TextInputLayout>(R.id.passwordInputLayout).hint = s.passwordHint
+        loginBtn.text = s.loginButton
+        registerTV.text = s.noAccountRegister
 
         loginBtn.setOnClickListener {
             val email = emailET.text.toString().trim()
             val pass = passwordET.text.toString().trim()
 
             if (email.isEmpty() || pass.isEmpty()) {
-                Toast.makeText(this, "Wypełnij wszystkie pola", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, s.fillAllFields, Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
 
             auth.signInWithEmailAndPassword(email, pass)
                 .addOnCompleteListener(this) { task ->
                     if (task.isSuccessful) {
-                        Toast.makeText(this, "Zalogowano pomyślnie!", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(this, s.loginSuccess, Toast.LENGTH_SHORT).show()
                         otworzGlowneWnetrzeAppki()
                     } else {
-                        Toast.makeText(this, "Błąd logowania: ${task.exception?.message}", Toast.LENGTH_LONG).show()
+                        Toast.makeText(this, s.loginError.format(task.exception?.message), Toast.LENGTH_LONG).show()
                     }
                 }
         }

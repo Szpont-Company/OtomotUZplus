@@ -60,7 +60,7 @@ fun ProfileScreen(
     val tabs = listOf(strings.myListings, strings.history)
 
     val user = FirebaseAuth.getInstance().currentUser
-    val userEmail = user?.email ?: "Brak emaila"
+    val userEmail = user?.email ?: strings.noEmail
 
     val creationTimestamp = user?.metadata?.creationTimestamp ?: 0L
     val memberYear = if (creationTimestamp > 0) {
@@ -244,7 +244,7 @@ fun CarListingCard(car: CarAd, strings: AppStrings, onClick: () -> Unit) {
                 if (car.imageUrls.isNotEmpty()) {
                     AsyncImage(
                         model = car.imageUrls.first(),
-                        contentDescription = "Miniatura ogłoszenia",
+                        contentDescription = strings.listingThumbnailDescription,
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop
                     )
