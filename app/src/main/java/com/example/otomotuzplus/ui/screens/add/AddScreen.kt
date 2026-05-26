@@ -360,7 +360,9 @@ fun AddScreen(
                         coroutineScope.launch {
                             val coords = geocodePostalCode("${postalCode.take(2)}-${postalCode.drop(2)}")
                             repository.uploadImages(selectedImageUris) { uploadedUrls ->
-                                val currentUserEmail = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.email ?: strings.noEmail
+                                val currentUser = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser
+                                val sellerId = currentUser?.uid ?: "unknown"
+                                val sellerEmail = currentUser?.email ?: "Brak emaila"
                                 val newCar = CarAd(
                                     title = title,
                                     priceText = priceText,
@@ -375,7 +377,8 @@ fun AddScreen(
                                     engineCapacity = engineCapacity,
                                     powerText = powerText,
                                     imageUrls = uploadedUrls,
-                                    sellerId = currentUserEmail,
+                                    sellerId = sellerId,
+                                    sellerEmail = sellerEmail,
                                     phoneNumber = phoneNumber.trim()
                                 )
                                 repository.addCar(

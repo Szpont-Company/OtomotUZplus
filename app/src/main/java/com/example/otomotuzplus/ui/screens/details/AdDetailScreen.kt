@@ -47,7 +47,7 @@ fun AdDetailScreen(
     val title = car.title.trim()
     val location = car.locationText.trim()
     val price = car.priceText.trim()
-    val seller = car.sellerId.trim()
+    val seller = car.sellerEmail.ifEmpty { car.sellerId }.trim()
     val phone = car.phoneNumber.filter { it.isDigit() || it == '+' }
 
     var isContactVisible by remember { mutableStateOf(false) }
