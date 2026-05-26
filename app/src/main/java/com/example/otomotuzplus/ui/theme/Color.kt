@@ -1,3 +1,7 @@
+/**
+ * @file Color.kt
+ * @brief Paleta kolorów Material3 aplikacji OtomotUZplus.
+ */
 package com.example.otomotuzplus.ui.theme
 
 import androidx.compose.ui.graphics.Color

@@ -1,3 +1,7 @@
+/**
+ * @file CarClusterOverlay.kt
+ * @brief Nakładka OSMDroid renderująca znaczniki ogłoszeń z grupowaniem siatkowym.
+ */
 package com.example.otomotuzplus.ui.screens.search
 
 import android.graphics.Canvas
@@ -12,12 +16,42 @@ import kotlin.math.abs
 import kotlin.math.pow
 import kotlin.math.sqrt
 
+/**
+ * OSMDroid [Overlay] renderujący znaczniki ogłoszeń pojazdów z grupowaniem siatkowyn.
+ *
+ * ## Algorytm grupowania
+ * Na każdym poziomie powiększenia mapa jest podzielona na siatkę geograficzną, której
+ * rozmiar komórki zależy od bieżącego zoomu (grubsze siatki przy niższym zoomie).
+ * Samochody w tej samej komórce są łączone w jeden [Cluster], którego pozycja to
+ * średnia współrzędnych jego członków. Lista klastrów jest przeliczana tylko gdy
+ * zoom zmienia się o więcej niż 0.4 poziomy (histereza zapobiegająca przeliczaniu
+ * przy każdym przewinięciu).
+ *
+ * ## Interakcja
+ * - Klaster jednosamochoadowy → wywoływana jest [onSingleCarTap].
+ * - Klaster wielosamochoadowy → [onClusterTap] jest wywoływany z listą samochodów klastra;
+ *   [SearchScreen] zawęża aktywny filtr geo do promienia ograniczającego klastra
+ *   i przełącza z powrotem na widok listy.
+ *
+ * @param cars           Wszystkie obiekty [CarAd] przechodzące przez aktywne filtry.
+ *   Samochody ze współrzędnymi (0, 0) są wykluczone z mapy.
+ * @param onSingleCarTap Callback dla dotknięcia pojedynczego znacznika samochodu.
+ * @param onClusterTap   Callback dla dotknięcia klastra wielu samochodów.
+ */
 class CarClusterOverlay(
     private val cars: List<CarAd>,
     private val onSingleCarTap: (CarAd) -> Unit,
     private val onClusterTap: (List<CarAd>) -> Unit
 ) : Overlay() {
 
+    /**
+     * Grupa geograficznie bliskich wpisów [CarAd] renderowanych jako jeden znacznik.
+     *
+     * @property geoCenter Środek geograficzny (średnia lat/lng wszystkich [cars]).
+     * @property cars       Wszystkie obiekty [CarAd] w tym klastrze.
+     * @property screenX    Pikselowa współrzędna X na kanwie; aktualizowana przy każdym wywołaniu [draw].
+     * @property screenY    Pikselowa współrzędna Y na kanwie; aktualizowana przy każdym wywołaniu [draw].
+     */
     data class Cluster(
         val geoCenter: GeoPoint,
         val cars: List<CarAd>,

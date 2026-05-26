@@ -1,4 +1,13 @@
+/**
+ * @file FirebaseRepository.kt
+ * @brief Warstwa danych – dostęp do Firestore, Firebase Storage i FCM.
+ */
 package com.example.otomotuzplus.data
+
+/**
+ * @file FirebaseRepository.kt
+ * @brief Warstwa dostępu do danych dla Firestore i Firebase Storage.
+ */
 
 import com.example.otomotuzplus.models.CarAd
 import com.google.firebase.firestore.FirebaseFirestore
@@ -6,10 +15,26 @@ import android.net.Uri
 import com.google.firebase.storage.FirebaseStorage
 import java.util.UUID
 
+/**
+ * Centralny obiekt dostępu do danych opakowujący kolekcje Firestore
+ * (`listings` / `users` / `notifications`) oraz Firebase Storage (`car_images/`).
+ *
+ * Wszystkie operacje Firestore są asynchroniczne i przekazują wynik
+ * przez lambdy zwrotne zamiast koroutyn, więc wywołujący na wątku głównym
+ * nie musi uruchamiać zakresu koroutyn.
+ */
 class FirebaseRepository {
     private val db = FirebaseFirestore.getInstance()
     private val storage = FirebaseStorage.getInstance()
 
+    /**
+     * Zapisuje zakodowane na stałe testowe ogłoszenie do Firestore.
+     *
+     * Przeznaczone wyłącznie do celów deweloperskich i debugowania.
+     *
+     * @param onSuccess Wywoływane po pomyślnym zapisaniu dokumentu.
+     * @param onFailure Wywoływane z [Exception] gdy zapis się nie powiedzie.
+     */
     fun uploadTestCar(onSuccess: () -> Unit, onFailure: (Exception) -> Unit) {
         val testCar = CarAd(
             title = "Opel Corsa",
@@ -30,6 +55,14 @@ class FirebaseRepository {
             .addOnFailureListener { e: Exception -> onFailure(e) }
     }
 
+    /**
+     * Pobiera jednorazowo wszystkie dokumenty z kolekcji `listings`.
+     *
+     * Preferuj [observeCars] dla ekranów UI wymagających aktualizacji na żywo.
+     *
+     * @param onSuccess Wywoływane z pełną listą obiektów [CarAd] po sukcesie.
+     * @param onFailure Wywoływane z [Exception] w razie błędu.
+     */
     fun getAllCars(onSuccess: (List<CarAd>) -> Unit, onFailure: (Exception) -> Unit) {
         db.collection("listings")
             .get()
@@ -46,6 +79,14 @@ class FirebaseRepository {
             }
     }
 
+    /**
+     * Dodaje nowy dokument ogłoszenia do kolekcji `listings`.
+     *
+     * @param car Obiekt [CarAd] do zapisania. Pole [CarAd.id] jest ignorowane;
+     *   Firestore generuje identyfikator dokumentu automatycznie.
+     * @param onSuccess Wywoływane po pomyślnym utworzeniu dokumentu.
+     * @param onFailure Wywoływane z [Exception] w razie błędu.
+     */
     fun addCar(car: CarAd, onSuccess: () -> Unit, onFailure: (Exception) -> Unit) {
         db.collection("listings")
             .add(car)
@@ -53,6 +94,17 @@ class FirebaseRepository {
             .addOnFailureListener { e: Exception -> onFailure(e) }
     }
 
+    /**
+     * Dołącza nasłuchiwacz migawek Firestore w czasie rzeczywistym do kolekcji `listings`.
+     *
+     * Callback wywoływany natychmiast z aktualnym stanem, a następnie przy każdej
+     * kolejnej zmianie. Nasłuchiwacz żyje przez cały czas istnienia komponentu;
+     * wywołujący odpowiada za jego usunięcie (implementacja nie udostępnia uchwytu —
+     * nasłuchiwacz powiązany jest z cyklem życia Activity przez `LaunchedEffect`).
+     *
+     * @param onCarsChanged Wywoływane na wątku głównym ze zaktualizowaną listą przy
+     *   każdej zmianie kolekcji. Wadliwe dokumenty są pomijane.
+     */
     fun observeCars(onCarsChanged: (List<CarAd>) -> Unit) {
         db.collection("listings")
             .addSnapshotListener { snapshot, e ->
@@ -73,6 +125,17 @@ class FirebaseRepository {
             }
     }
 
+    /**
+     * Przesyła partię lokalnych URI obrazów do Firebase Storage w katalogu `car_images/`.
+     *
+     * Każdy plik przechowywany pod nazwą UUID. Wszystkie przesyłania działają równolegle,
+     * a [onComplete] wywoływane jest gdy wszystkie zakończą działanie (sukces lub błąd).
+     * Nieudane przesyłania poszczególnych plików są pomijane na liście wynikowej.
+     *
+     * @param uris Lokalne URI treści (zdjęcia z galerii lub zrobione aparatem przez `FileProvider`).
+     * @param onComplete Wywoływane z listą adresów URL pobierania po zakończeniu wszystkich
+     *   przesyłań. Zwraca pustą listę gdy [uris] jest puste.
+     */
     fun uploadImages(uris: List<Uri>, onComplete: (List<String>) -> Unit) {
         if (uris.isEmpty()) {
             onComplete(emptyList())
@@ -104,6 +167,15 @@ class FirebaseRepository {
             }
         }
     }
+    /**
+     * Scala bieżący token rejestracji FCM z dokumentem użytkownika w Firestore.
+     *
+     * Używa `SetOptions.merge()` aby zachować pozostałe pola dokumentu `users`.
+     * Wywoływane przez [MyFirebaseMessagingService.onNewToken] przy każdym odświeżeniu tokenu.
+     *
+     * @param userId UID zalogowanego użytkownika w Firebase Auth.
+     * @param token  Nowy token rejestracji FCM.
+     */
     fun updateFcmToken(userId: String, token: String) {
         val tokenData = mapOf("fcmToken" to token)
         db.collection("users")
@@ -119,6 +191,15 @@ class FirebaseRepository {
                 )
             }
     }
+    /**
+     * Zapisuje dokument powiadomienia o polubieniu do kolekcji `notifications`.
+     *
+     * `MainActivity` nasłuchuje tej kolekcji przez listener migawek i wyświetla
+     * lokalne powiadomienie gdy nowy dokument zostanie dodany dla bieżącego użytkownika.
+     *
+     * @param sellerId UID sprzedającego posiadającego polubione ogłoszenie w Firebase Auth.
+     * @param carTitle Tytuł polubionego ogłoszenia; umieszczony w treści powiadomienia.
+     */
     fun sendLikeNotification(sellerId: String, carTitle: String) {
         val notification = hashMapOf(
             "toUser" to sellerId,
@@ -128,6 +209,17 @@ class FirebaseRepository {
         db.collection("notifications").add(notification)
     }
 
+    /**
+     * Wysyła powiadomienie push FCM bezpośrednio przez API HTTP v1 w wątku w tle.
+     *
+     * Pobiera krótkotrwały token dostępu OAuth2 z Firebase Auth, następnie wykonuje
+     * żądanie HTTP POST do `fcm.googleapis.com`. Operacja typu fire-and-forget;
+     * wynik tylko logowany, nigdy nie przekazywany do UI.
+     *
+     * @param token Token rejestracji FCM urządzenia odbiorcy. Jeśli null lub pusty,
+     *   wywołanie jest ignorowane.
+     * @param carTitle Tytuł polubionego ogłoszenia; osadzony w treści wiadomości.
+     */
     fun proceedWithSending(token: String?, carTitle: String) {
         if (!token.isNullOrEmpty()) {
             Thread {

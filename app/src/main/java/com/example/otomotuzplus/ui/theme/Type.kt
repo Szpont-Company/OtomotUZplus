@@ -1,3 +1,7 @@
+/**
+ * @file Type.kt
+ * @brief Typografia Material3 aplikacji OtomotUZplus.
+ */
 package com.example.otomotuzplus.ui.theme
 
 import androidx.compose.material3.Typography

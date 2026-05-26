@@ -1,3 +1,7 @@
+/**
+ * @file MainActivity.kt
+ * @brief Główna Activity po zalogowaniu – korzeń drzewa Compose i zarządca nawigacji stanowej.
+ */
 @file:OptIn(ExperimentalMaterial3Api::class)
 
 package com.example.otomotuzplus
@@ -45,6 +49,21 @@ import com.google.firebase.firestore.DocumentChange
 import com.google.firebase.messaging.FirebaseMessaging
 import com.google.android.gms.ads.MobileAds
 
+/**
+ * Jedyna Activity po zalogowaniu, która hostuje całe drzewo UI Compose.
+ *
+ * Zadania obsługiwane na poziomie Activity:
+ * - Inicjalizacja AdMob (`MobileAds.initialize`).
+ * - Żądanie uprawnienia `POST_NOTIFICATIONS` na Android 13+.
+ * - Odczyt zapisanego motywu i języka z [PreferenceManager] i
+ *   przekazanie ich do [OtomotUZplusApp].
+ * - Pobieranie tokenu rejestracji FCM i dołączanie nasłuchiwacza migawek Firestore
+ *   na kolekcji `notifications`, aby przychodzące zdarzenia "polubień"
+ *   wyzwalały lokalne powiadomienia push przez [NotificationHelper].
+ *
+ * Cały stan nawigacji w aplikacji żyje w [OtomotUZplusApp] (jako [Composable]),
+ * nie w tej Activity.
+ */
 class MainActivity : ComponentActivity() {
     private val requestPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -156,6 +175,36 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+/**
+ * Główna kompozycja posiadająca cały współdzielony stan nawigacji i UI aplikacji.
+ *
+ * ## Model nawigacji
+ * Nawigacja sterowana stanem zamiast trasami:
+ * - `currentDestination` wybiera który ekran zakładki jest pokazany wewnątrz
+ *   [NavigationSuiteScaffold].
+ * - `selectedCar != null` nakłada [AdDetailScreen] na cały scaffold.
+ * - `showSettings == true` nakłada [SettingsScreen] na cały scaffold.
+ * - [BackHandler] zdejmuje warstwy: szczegóły → ustawienia → HOME.
+ *
+ * ## Głębokie linki między ekranami
+ * Zmienne `pendingSearch*` przenoszą stan początkowych filtrów z ekranu Home
+ * do [SearchScreen]. [SearchScreen] konsumuje je raz przez `onInitialFiltersConsumed`.
+ *
+ * ## Przepływ danych
+ * `allCarsFromDb` wypełniane raz przez [LaunchedEffect] subskrybujący
+ * [FirebaseRepository.observeCars] i przekazywane jawnie do każdego ekranu
+ * który go potrzebuje — brak warstwy ViewModel ani DI.
+ *
+ * @param repository                  Singleton dostępu do danych.
+ * @param themeMode                   Aktywny motyw.
+ * @param onThemeChange               Callback do zapisania nowego motywu.
+ * @param currentLanguage             Aktywny identyfikator języka.
+ * @param onLanguageChange            Callback do zapisania nowego języka.
+ * @param notificationsRefused        Czy użytkownik odrzucił okno dialogowe uprawnień.
+ * @param onSetNotificationsRefused   Callback do zapisania flagi odrzucenia.
+ * @param onRequestNotificationPermission Callback uruchamiający systemowe okno uprawnień.
+ * @param notificationsPermissionGranted  Aktualny stan przyznania uprawnień.
+ */
 @Composable
 fun OtomotUZplusApp(
     repository: FirebaseRepository,

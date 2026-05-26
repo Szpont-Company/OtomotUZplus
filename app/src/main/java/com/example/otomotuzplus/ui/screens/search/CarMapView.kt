@@ -1,3 +1,7 @@
+/**
+ * @file CarMapView.kt
+ * @brief Komponent Compose opakowujący mapę OSMDroid ze zgrupowanymi znacznikami.
+ */
 package com.example.otomotuzplus.ui.screens.search
 
 import android.Manifest
@@ -45,6 +49,30 @@ import org.osmdroid.views.MapView
 import org.osmdroid.views.overlay.mylocation.GpsMyLocationProvider
 import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay
 
+/**
+ * Komponent Compose opakowujący OSMDroid [MapView] wyświetlający ogłoszenia pojazdów
+ * jako zgrupowane znaczniki na mapie.
+ *
+ * ## Konfiguracja mapy
+ * - Źródło kafelków: MAPNIK (standard OpenStreetMap).
+ * - Zoom wielodotykowy włączony; wbudowane kontrolki zoomu wyłączone (zamiast nich własne FABs).
+ * - Granice przewijania ograniczone do Europy.
+ * - Centrum początkowe: Polska (52°N, 20°E) na zoomie 6.
+ *
+ * ## Uprawnienia
+ * `ACCESS_FINE_LOCATION` jest żądane podczas kompozycji jeśli nie zostało jeszcze przyznane.
+ * Po przyznaniu mapa jest przesuwana do ostatniej znanej lokalizacji urządzenia i dodawany
+ * jest [MyLocationNewOverlay].
+ *
+ * ## Cykl życia
+ * [DisposableEffect] wywołuje `onResume` / `onPause` / `onDetach` na bazowym [MapView]
+ * zgodnie z cyklem życia Compose i wyłącza nakładkę lokalizacji przy usuwaniu.
+ *
+ * @param cars            Przefiltrowana lista obiektów [CarAd] do wyświetlenia jako znaczniki.
+ * @param onSingleCarTap  Callback wywoływany gdy użytkownik dotknie znacznika jednego samochodu.
+ * @param onClusterTap    Callback wywoływany ze wszystkimi samochodami w klastrze po dotknięciu.
+ * @param modifier        Opcjonalny zewnętrzny [Modifier].
+ */
 @Composable
 fun CarMapView(
     cars: List<CarAd>,

@@ -1,3 +1,7 @@
+/**
+ * @file MyFirebaseMessagingService.kt
+ * @brief Serwis FCM odbierający przychodzące wiadomości push.
+ */
 package com.example.otomotuzplus.fcm
 
 import android.app.NotificationManager
@@ -11,6 +15,18 @@ import com.example.otomotuzplus.utils.NotificationHelper
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
 
+/**
+ * Serwis Firebase Cloud Messaging obsługujący przychodzące wiadomości push.
+ *
+ * Obsługiwane są dwa formaty ładunku:
+ * - **Wiadomość danych** (`remoteMessage.data` niepusta): klucze `"title"` i `"body"`
+ *   są wyodrębniane i przekazywane do [sendNotification].
+ * - **Wiadomość powiadomienia**: używane są standardowe pola powiadomień z Firebase.
+ *
+ * [onNewToken] jest wywoływany przez SDK FCM gdy token rejestracji ulegnie zmianie.
+ * Jeśli użytkownik jest wtedy zalogowany, nowy token powinien być zapisany przez
+ * [FirebaseRepository.updateFcmToken] (jeszcze nie zaimplementowane tutaj).
+ */
 class MyFirebaseMessagingService : FirebaseMessagingService() {
 
     override fun onMessageReceived(remoteMessage: RemoteMessage) {

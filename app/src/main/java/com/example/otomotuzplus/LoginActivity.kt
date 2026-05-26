@@ -1,3 +1,7 @@
+/**
+ * @file LoginActivity.kt
+ * @brief Ekran logowania – punkt wejściowy aplikacji, uwierzytelnianie przez Firebase Auth.
+ */
 package com.example.otomotuzplus
 
 import android.content.Intent
@@ -10,6 +14,17 @@ import com.google.android.material.textfield.TextInputEditText
 import com.google.firebase.auth.FirebaseAuth
 import kotlin.jvm.java
 
+/**
+ * Activity wejściowa zadeklarowana jako launcher w `AndroidManifest.xml`.
+ *
+ * Wyświetla pola e-mail i hasło oraz deleguje uwierzytelnianie do
+ * Firebase Auth (`signInWithEmailAndPassword`). Po pomyślnym zalogowaniu
+ * (lub gdy użytkownik jest już zalogowany przy starcie) uruchamia
+ * [MainActivity] z flagami `FLAG_ACTIVITY_NEW_TASK | FLAG_ACTIVITY_CLEAR_TASK`,
+ * aby wyczyścić stos back i uniemożliwić powrót do ekranu logowania.
+ *
+ * Nawigacja do [RegisterActivity] dostępna przez link tekstowy.
+ */
 class LoginActivity : AppCompatActivity() {
 
     private lateinit var auth: FirebaseAuth

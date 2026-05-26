@@ -1,3 +1,7 @@
+/**
+ * @file AdDetailScreen.kt
+ * @brief Pełnoekranowy widok szczegółów ogłoszenia z gestowym ujawnianiem kontaktu.
+ */
 package com.example.otomotuzplus.ui.screens.details
 
 import android.content.Context
@@ -36,6 +40,31 @@ import com.example.otomotuzplus.ui.models.localizeGearboxType
 import com.example.otomotuzplus.ui.theme.BrandGold
 import kotlin.math.sqrt
 
+/**
+ * Pełnoekranowy widok szczegółów pojedynczego ogłoszenia pojazdu.
+ *
+ * ## Układ
+ * 1. Przezroczysty [TopAppBar] ze strzałką powrotu.
+ * 2. Poziomy pager obrazów ([HorizontalPager]) gdy dostępne są zdjęcia, lub
+ *    ikona zastępcza.
+ * 3. Zaokrąglona karta zawierająca:
+ *    - Etykietę "Zweryfikowane ogłoszenie".
+ *    - Tytuł, lokalizację i cenę.
+ *    - Siatkę specyfikacji ([SpecItem]): rok, przebieg, paliwo, skrzynia, silnik, moc.
+ *    - Wiersz identyfikatora sprzedawcy.
+ *    - Sekcję kontaktową (patrz poniżej).
+ *
+ * ## Dotknięcie pokrętłem (shake) do ujawnienia kontaktu
+ * Numer telefonu sprzedawcy jest ukryty za gestem potrząśnięcia. [SensorEventListener]
+ * zarejestrowany na [Sensor.TYPE_ACCELEROMETER] monitoruje przyspieszenie netto
+ * (z wyłączeniem grawitacji). Gdy wartość przekroczy **5 m/s²** przyciski telefonu
+ * i SMS są ujawniane. Czujnik jest wyrejestrowany w `onDispose` aby zapobiec
+ * nadmiernemu zużyciu baterii.
+ *
+ * @param car         Obiekt [CarAd] do wyświetlenia.
+ * @param strings     Aktywne [AppStrings] dla zlokalizowanych etykiet.
+ * @param onBackClick Callback wywoływany po dotknięciu strzałki powrotu.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AdDetailScreen(
@@ -286,6 +315,17 @@ fun AdDetailScreen(
     }
 }
 
+/**
+ * Pojedynczy wiersz w siatce specyfikacji pojazdu.
+ *
+ * Wyświetla wiodącą ikonę, pogrubioną wartość główną ([title]) oraz etykietę
+ * pomocniczą ([subtitle]) poniżej.
+ *
+ * @param icon     Ikona reprezentująca kategorię specyfikacji.
+ * @param title    Wartość główna (np. "15 000 km").
+ * @param subtitle Etykieta kategorii (np. "Przebieg").
+ * @param modifier Opcjonalny [Modifier] stosowany do kontenera wiersza.
+ */
 @Composable
 fun SpecItem(icon: ImageVector, title: String, subtitle: String, modifier: Modifier = Modifier) {
     Row(modifier = modifier, verticalAlignment = Alignment.CenterVertically) {
