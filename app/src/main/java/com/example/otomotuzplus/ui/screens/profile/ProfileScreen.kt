@@ -61,7 +61,7 @@ fun ProfileScreen(
 
     val user = FirebaseAuth.getInstance().currentUser
     val userEmail = user?.email ?: strings.noEmail
-
+    val userUid = user?.uid ?: ""
     val creationTimestamp = user?.metadata?.creationTimestamp ?: 0L
     val memberYear = if (creationTimestamp > 0) {
         Calendar.getInstance().apply { timeInMillis = creationTimestamp }.get(Calendar.YEAR).toString()
@@ -69,7 +69,7 @@ fun ProfileScreen(
         "2026"
     }
 
-    val myCars = allCarsFromDb.filter { it.sellerId == userEmail }
+    val myCars = allCarsFromDb.filter { it.sellerId == userUid }
 
     Column(
         modifier = Modifier
